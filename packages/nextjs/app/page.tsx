@@ -1,73 +1,99 @@
 "use client";
 
 import Link from "next/link";
-import { Address } from "@scaffold-ui/components";
 import type { NextPage } from "next";
-import { useAccount } from "wagmi";
-import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
-import { useTargetNetwork } from "~~/hooks/scaffold-eth";
+import {
+  ArrowRightStartOnRectangleIcon,
+  BuildingOffice2Icon,
+  PlusIcon,
+  TicketIcon,
+  UserCircleIcon,
+} from "@heroicons/react/24/outline";
+import { useEventraSession } from "~~/hooks/eventra/useEventraSession";
 
 const Home: NextPage = () => {
-  const { address: connectedAddress } = useAccount();
-  const { targetNetwork } = useTargetNetwork();
+  const { session, hydrated, logout } = useEventraSession();
 
   return (
-    <>
-      <div className="flex items-center flex-col grow pt-10">
-        <div className="px-5">
-          <h1 className="text-center">
-            <span className="block text-2xl mb-2">Welcome to</span>
-            <span className="block text-4xl font-bold">Scaffold-ETH 2</span>
-          </h1>
-          <div className="flex justify-center items-center space-x-2 flex-col">
-            <p className="my-2 font-medium">Connected Address:</p>
-            <Address address={connectedAddress} chain={targetNetwork} />
-          </div>
-
-          <p className="text-center text-lg">
-            Get started by editing{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/nextjs/app/page.tsx
-            </code>
-          </p>
-          <p className="text-center text-lg">
-            Edit your smart contract{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              YourContract.sol
-            </code>{" "}
-            in{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/hardhat/contracts
-            </code>
-          </p>
+    <div className="flex grow flex-col items-center justify-center bg-[#f5f6f8] px-4 py-16">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex items-center gap-3">
+          <TicketIcon className="h-10 w-10 text-[#2bb3ec]" />
+          <h1 className="text-4xl font-bold text-[#131a2b]">Eventra</h1>
         </div>
-
-        <div className="grow bg-base-300 w-full mt-16 px-8 py-12">
-          <div className="flex justify-center items-center gap-12 flex-col md:flex-row">
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <BugAntIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Tinker with your smart contract using the{" "}
-                <Link href="/debug" passHref className="link">
-                  Debug Contracts
-                </Link>{" "}
-                tab.
-              </p>
-            </div>
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-xs rounded-3xl">
-              <MagnifyingGlassIcon className="h-8 w-8 fill-secondary" />
-              <p>
-                Explore your local transactions with the{" "}
-                <Link href="/blockexplorer" passHref className="link">
-                  Block Explorer
-                </Link>{" "}
-                tab.
-              </p>
-            </div>
-          </div>
-        </div>
+        <p className="mt-3 max-w-md text-[#6b7280]">
+          Crea eventos, descubre experiencias y compra entradas. La plataforma para tu comunidad.
+        </p>
       </div>
-    </>
+
+      <div className="mt-10 w-full max-w-md">
+        {!hydrated ? null : session ? (
+          <div className="rounded-2xl bg-white p-6 shadow-md">
+            <div className="flex items-center gap-3">
+              {session.role === "company" ? (
+                <BuildingOffice2Icon className="h-7 w-7 text-[#2bb3ec]" />
+              ) : (
+                <UserCircleIcon className="h-7 w-7 text-[#2bb3ec]" />
+              )}
+              <div>
+                <div className="font-bold text-[#131a2b]">¡Hola, {session.username}!</div>
+                <div className="text-sm text-[#6b7280]">{session.email}</div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-[#f5f6f8] p-3 text-sm text-[#131a2b]">
+              <span className="font-semibold">Cuenta:</span> {session.role === "company" ? "Event Company" : "Usuario"}
+              {session.company && (
+                <div className="mt-2 space-y-0.5 text-xs text-[#374151]">
+                  <div>
+                    <span className="font-semibold">Empresa:</span> {session.company.name}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Teléfono:</span> {session.company.phone}
+                  </div>
+                  <div className="break-all">
+                    <span className="font-semibold">Wallet:</span> {session.company.wallet}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {session.role === "company" && (
+              <Link
+                href="/events/create"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#2bb3ec] py-3 font-semibold text-white shadow-md transition hover:bg-[#1ba5dd]"
+              >
+                <PlusIcon className="h-5 w-5" />
+                Crear evento
+              </Link>
+            )}
+
+            <button
+              onClick={logout}
+              className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white py-3 font-semibold text-[#131a2b] transition hover:bg-[#f5f6f8]"
+            >
+              <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+              Cerrar sesión
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <Link
+              href="/login"
+              className="w-full rounded-full bg-[#2bb3ec] py-3 text-center font-semibold text-white shadow-md transition hover:bg-[#1ba5dd]"
+            >
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/register"
+              className="w-full rounded-full cursor-pointer border border-[#2bb3ec] bg-white py-3 text-center font-semibold text-[#2bb3ec] transition hover:bg-[#eaf7fd]"
+            >
+              Crear cuenta
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

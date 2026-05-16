@@ -2574,10 +2574,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.2.9":
-  version: 15.2.9
-  resolution: "@next/env@npm:15.2.9"
-  checksum: 10/ddf1d78d37357475092f6fb281233c58ffe519ae08136a61000e7c64c801d2a5fd1aaf7e5233d108820cf6ff757bf9346e0e9cfc45e517f330adfd023514531b
+"@next/env@npm:15.2.5":
+  version: 15.2.5
+  resolution: "@next/env@npm:15.2.5"
+  checksum: 10/19f0d7fb25b7dcb7ba6b9f42232de70aaa30e7cc998b14c9428597d2f2052e9a0fb7fb96b46fd7a793de04625808399526c180013316ac285ce23a6255d6c3a9
   languageName: node
   linkType: hard
 
@@ -2642,6 +2642,7 @@ __metadata:
 "@next/swc-win32-x64-msvc@npm:15.2.5":
   version: 15.2.5
   resolution: "@next/swc-win32-x64-msvc@npm:15.2.5"
+  checksum: 10/e4f71d50fda88d0e03b3ce3047c1fb3cdf6861fb53c241d83e8bd3f14fed2fdc3f1fafda121438fcb9025f83079e5aecd3c289182d2af1bc7a9a13f6750be118
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -3768,6 +3769,7 @@ __metadata:
   resolution: "@se-2/nextjs@workspace:packages/nextjs"
   dependencies:
     "@heroicons/react": "npm:~2.1.5"
+    "@next/swc-win32-x64-msvc": "npm:15.2.5"
     "@rainbow-me/rainbowkit": "npm:2.2.9"
     "@react-native-async-storage/async-storage": "npm:~2.2.0"
     "@scaffold-ui/components": "npm:^0.1.10"
@@ -3789,7 +3791,7 @@ __metadata:
     eslint-config-prettier: "npm:~10.1.1"
     eslint-plugin-prettier: "npm:~5.2.4"
     kubo-rpc-client: "npm:~5.0.2"
-    next: "npm:~15.2.8"
+    next: "npm:15.2.5"
     next-nprogress-bar: "npm:~2.3.13"
     next-themes: "npm:~0.3.0"
     postcss: "npm:~8.4.45"
@@ -12003,11 +12005,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:~15.2.8":
-  version: 15.2.9
-  resolution: "next@npm:15.2.9"
+"next@npm:15.2.5":
+  version: 15.2.5
+  resolution: "next@npm:15.2.5"
   dependencies:
-    "@next/env": "npm:15.2.9"
+    "@next/env": "npm:15.2.5"
     "@next/swc-darwin-arm64": "npm:15.2.5"
     "@next/swc-darwin-x64": "npm:15.2.5"
     "@next/swc-linux-arm64-gnu": "npm:15.2.5"
@@ -12060,7 +12062,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10/b5dfc4a7eace12f8dc8c6bfc5c53e581553fb6b8ab66429c9feb70f8b2cca290802a69f9a8db96c70782952d5331940aa3c7d14a67d7f558c976eb426250cd10
+  checksum: 10/5621836cc7a32e2f51bed7688308ba614231f4760424985b693215be301b9ca76546ac772b38c29b15aa5b908bfb035bee8c0ac60e3fde26530a473334f7465c
   languageName: node
   linkType: hard
 

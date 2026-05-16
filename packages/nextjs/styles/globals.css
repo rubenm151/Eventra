@@ -103,7 +103,7 @@
 
 :root,
 [data-theme] {
-  background: var(--color-base-200);
+  background: #f5f6f8;
 }
 
 .btn {
