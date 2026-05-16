@@ -72,6 +72,7 @@ contract EventraContract {
         _;
     }
 
+    //las fechas se pasarian en formato UNIX: 1778966678 10 digits
     function createEvent(
         bytes32 eventName,
         string memory eventDescription,
