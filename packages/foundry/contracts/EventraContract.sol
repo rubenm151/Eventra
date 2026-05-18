@@ -84,8 +84,8 @@ contract EventraContract is Ownable {
     /// State Variables //
     //////////////////////
 
-    struct User {}
-    struct Company{}
+   // struct User {}
+    // struct Company{}
 
     uint256 public nextEventId;
 
@@ -124,16 +124,16 @@ contract EventraContract is Ownable {
     /// Functions /////
     ///////////////////
 
-    function registerUser(){}
-    function logginUser(){}
-    function searchEvent(){}
-    function buyTicket(){}
-    function viewOurTickets(){}
-    function resendTicket(){}
-    function transferTicket(){}
+    function registerUser() external{}
+    function loggingUser() external{}
+    function searchEvent() external{}
+    function buyTicket() external{}
+    function viewOurTickets() external{}
+    function resendTicket() external{}
+    function transferTicket() external{}
 
 
-    function registerCompany(){}
+    function registerCompany() external{}
     //las fechas se pasarian en formato UNIX: 1778966678 10 digits
     function createEvent(
         bytes32 _eventName,
@@ -162,12 +162,12 @@ contract EventraContract is Ownable {
 
         emit EventCreated(eventId, _eventName, _ticketPrice, _eventDate);
     }
-    function viewStatistics(){}
-    function cancelEvent(){}
-    function withdrawFounds(){}
+    function viewStatistics() external{}
+    function cancelEvent() external{}
+    function withdrawFunds() external{}
 
 
-    function suspendAccount() onlyOwner {}
+    function suspendAccount() external onlyOwner {}
 
 
     receive() external payable { }
