@@ -116,12 +116,12 @@ contract EventraContract is Ownable {
     uint16 public constant MINIMUM_ROYALTY = 10;
     uint16 public constant MAXIMUM_ROYALTY = 25;
 
-    mapping(uint256 => Event) events;
-    mapping(uint256 => Ticket) tickets;
+    mapping(uint256 => Event) events; // EventId => Event struct
+    mapping(uint256 => Ticket) tickets; // QUESTION: why this var and ticketToEvent?
     mapping(address => mapping(uint256 => uint256)) ticketToEvent; // OXXXX[1][1]
     mapping(address => uint256[]) userTickets;
     mapping(address => Company) companies;
-    mapping(address => uint256[]) companyEvents;
+    mapping(address => uint256[]) companyEvents; // QUESTION: Is it necessary? Event has address atb in the struct ...
 
     ////////////////
     /// Events /////
