@@ -60,13 +60,13 @@ contract EventraContract is Ownable {
         uint256 eventId;
         uint256 ticketQR;
         address ticketUser;
-        uint32 ticketEvent;
         TicketState ticketState;
+        // HAY QUE CREAR PRIMERO EL TICKET Y LUEGO VER COMO SE RELACIONA CON EL EVENTO Y LOS FONDOS
     }
 
     struct Company {
         string companyName;
-       // bytes16 phoneNumber; REVISAR POR SEGURIDAD GUARDAR INFORMACION COMO EL TELF EN LA BLOCKCHAIN, SERIA MEJOR BORRARLO
+        // bytes16 phoneNumber; REVISAR POR SEGURIDAD GUARDAR INFORMACION COMO EL TELF EN LA BLOCKCHAIN, SERIA MEJOR BORRARLO
         address addr;
     }
 
@@ -100,7 +100,7 @@ contract EventraContract is Ownable {
 
     mapping(uint256 => Event) events;
     mapping(uint256 => Ticket) tickets;
-    mapping(address => mapping(uint256 => uint256)) ticketToEvent;
+    mapping(address => mapping(uint256 => uint256)) ticketToEvent; // OXXXX[1][1]
     mapping(address => uint256[]) userTickets;
     mapping(address => Company) companies;
     mapping(address => uint256[]) companyEvents;
@@ -136,7 +136,7 @@ contract EventraContract is Ownable {
 
     function registerCompany(string memory _companyName, address _addr) external {
         if (bytes(_companyName).length == 0) revert InvalidArgument("Invalid Company Name");
-       // if (_phoneNumber == bytes16(0)) revert InvalidArgument("Invalid Phone Number");
+        // if (_phoneNumber == bytes16(0)) revert InvalidArgument("Invalid Phone Number");
         if (_addr == address(0)) revert InvalidArgument("Invalid Company Address");
 
         companies[_addr] = Company({ companyName: _companyName, addr: _addr });
@@ -229,6 +229,9 @@ contract EventraContract is Ownable {
 
         if (msg.sender != eventra.organizer) revert Unauthorized("Invalid user");
 
+        if (eventra.startSellDate >= block.timestamp) revert InvalidArgument("Invalid Start Time");
+        if (eventra.endSellDate <= block.timestamp) revert InvalidArgument("Invalid End Time");
+
         if (eventra.eventState != EventState.Active) revert InvalidEventState();
 
         eventra.eventState = EventState.Canceled;
@@ -248,7 +251,7 @@ contract EventraContract is Ownable {
 
         eventra.eventState = EventState.Finished;
 
-        (bool ok,) = msg.sender.call{ value: 0 }(""); //DEFINIR QUE SE PAGA
+        (bool ok,) = msg.sender.call{ value: eventra.eventFunds }(""); //DEFINIR QUE SE PAGA
         if (!ok) revert TransferFailed();
 
         emit EventFundsWithdrawn(eventId, eventra.eventName);
