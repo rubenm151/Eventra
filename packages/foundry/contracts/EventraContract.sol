@@ -35,6 +35,7 @@ contract EventraContract is Ownable {
     enum EventState {
         Active,
         Expired,
+        SoldOut,
         Canceled,
         Finished
     }
