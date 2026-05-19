@@ -41,6 +41,15 @@ contract EventraContract is Ownable {
         Finished
     }
 
+    /*
+    Possible states a ticket can have:
+        - Active: Ticket can still be bought, sold, and used.
+        - Transfered: Ticket is no longer of User's property, so there is nothing you can do with it.
+        - inResell: Ticket is in the resell marketplace. It cannot be used or transferred.
+        - Used: The Ticket has already been used, so you can't transfer it, use it again, or resell it.
+        - Cancelled: Ticket has been canceled by the Company. You can only reimburse it.
+        - Reimbursed: It has already been reimbursed, so you cannot do anything with it.
+    */
     enum TicketState {
         Active,
         Transfered,
