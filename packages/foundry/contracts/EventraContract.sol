@@ -66,7 +66,7 @@ contract EventraContract is Ownable {
 
     struct Company {
         string companyName;
-        bytes16 phoneNumber; //REVISAR POR SEGURIDAD GUARDAR INFORMACION COMO EL TELF EN LA BLOCKCHAIN
+       // bytes16 phoneNumber; REVISAR POR SEGURIDAD GUARDAR INFORMACION COMO EL TELF EN LA BLOCKCHAIN, SERIA MEJOR BORRARLO
         address addr;
     }
 
@@ -134,12 +134,12 @@ contract EventraContract is Ownable {
     function resendTicket() external { }
     function transferTicket() external { }
 
-    function registerCompany(string memory _companyName, bytes16 _phoneNumber, address _addr) external {
+    function registerCompany(string memory _companyName, address _addr) external {
         if (bytes(_companyName).length == 0) revert InvalidArgument("Invalid Company Name");
-        if (_phoneNumber == bytes16(0)) revert InvalidArgument("Invalid Phone Number");
+       // if (_phoneNumber == bytes16(0)) revert InvalidArgument("Invalid Phone Number");
         if (_addr == address(0)) revert InvalidArgument("Invalid Company Address");
 
-        companies[_addr] = Company({ companyName: _companyName, phoneNumber: _phoneNumber, addr: _addr });
+        companies[_addr] = Company({ companyName: _companyName, addr: _addr });
     }
 
     //las fechas se pasarian en formato UNIX: 1234567890 10 digits
