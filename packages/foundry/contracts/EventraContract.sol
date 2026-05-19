@@ -114,18 +114,16 @@ contract EventraContract is ERC721, Ownable {
     uint16 public constant MINIMUM_ROYALTY = 10;
     uint16 public constant MAXIMUM_ROYALTY = 25;
 
-
     uint256 public nextEventId;
     // Variable para controlar el id del NFT. Se usa para crear
     uint256 public nextTokenId;
 
-
-    mapping(uint256 => Event) events; // EventId => Event struct
-    mapping(uint256 => string) public eventBaseURI; //EventId => URI base del evento
+    mapping(uint256 => Event) public events; // EventId => Event struct
+    mapping(uint256 => string) public eventBaseURI; // EventId => URI base del evento
     // QUESTION: no se cómo de necesario es esto.
 
     // EventId => numero de tickets vendidos. Se inicializa a 0.
-    mapping(uint256 => uint32) ticketsSold;
+    mapping(uint256 => uint32) public ticketsSold;
 
     /* EventId => Lista[TokenIds] que pertenecen al evento EventId.
     Usado para:
@@ -133,12 +131,17 @@ contract EventraContract is ERC721, Ownable {
     2. Mostrar estadísticas a Company
     3. En frontend poder gestionar los tickets de un evento
     */
-    mapping(uint256 => uint256[]) eventTickets;
+    mapping(uint256 => uint256[]) public eventTickets;
     // OTRA OPCION: codificar el eventId dentro del propio tokenId
 
+    mapping(address => Company) public companies;
+    mapping(address => uint256[]) public companyEvents; // QUESTION: Is it necessary? Event has address atb in the struct ...
 
-    mapping(address => Company) companies;
-    mapping(address => uint256[]) companyEvents; // QUESTION: Is it necessary? Event has address atb in the struct ...
+    mapping(uint256 => Ticket) public tickets;
+    // mapping(address => mapping(uint256 => uint256)) ticketToEvent; // OXXXX[1][1] - redundante con tickets[tokenId].eventId
+
+    // User Address => Lista[TokenIds] vinculados al User Address.
+    mapping(address => uint256[]) public userTickets;
 
 
     mapping(uint256 => Ticket) tickets; // QUESTION: why this var and ticketToEvent?
@@ -152,13 +155,12 @@ contract EventraContract is ERC721, Ownable {
     /// Events /////
     ////////////////
 
-    event EventCompanyRegistered(string companyName, address companyAddress);  // TIENE SENTIDO??
-    event EventCreated(uint256 eventId, string eventName, uint96 ticketPrice, uint48 eventDate);
-    event EventCanceled(uint256 eventId, string eventName, uint96 ticketPrice, uint48 eventDate);
-    event EventFundsWithdrawn(uint256 eventId, string eventName); //HABRIA QUE VER COMO SE LE PASA EL DINERO OBTENIDO
-    
-    event TicketSold(uint256 eventId, uint256 tokenId, address indexed buyer, uint96 price);
+    event EventCompanyRegistered(string companyName, address companyAddress); // TIENE SENTIDO??
+    event EventCreated(uint256 indexed eventId, string eventName, uint96 ticketPrice, uint48 indexed eventDate);
+    event EventCanceled(uint256 indexed eventId, string eventName, uint96 ticketPrice, uint48 indexed eventDate);
+    event EventFundsWithdrawn(uint256 indexed eventId, string eventName); //HABRIA QUE VER COMO SE LE PASA EL DINERO OBTENIDO
 
+    event TicketSold(uint256 indexed eventId, uint256 indexed tokenId, address indexed buyer, uint96 price);
 
     /////////////////
     /// Modifiers ///
@@ -178,7 +180,6 @@ contract EventraContract is ERC721, Ownable {
         _;
     }
 
-
     ///////////////////
     /// Constructor ///
     ///////////////////
@@ -197,18 +198,17 @@ contract EventraContract is ERC721, Ownable {
     function loggingUser() external { }
     function searchEvent(uint256 eventId) external { }
 
-    function buyTicket(uint256 _eventId) external payable{ 
-        if (_eventId == 0 || _eventId >= nextEventId) revert EventNotFound();
+    function buyTicket(uint256 _eventId) external payable {
+        if (_eventId == 0 || _eventId >= nextEventId) revert EventNotFound(_eventId);
 
         Event storage ev = events[_eventId];
 
-        if(ev.eventState == EventState.SoldOut) revert InvalidEventState();
+        if (ev.eventState == EventState.SoldOut) revert InvalidEventState();
 
-        if(block.timestamp > ev.endSellDate) revert SalesClosed();
-        if(block.timestamp < ev.startSellDate) revert SalesClosed();
+        if (block.timestamp > ev.endSellDate) revert SalesClosed();
+        if (block.timestamp < ev.startSellDate) revert SalesClosed();
 
-        if(msg.value != ev.ticketPrice) revert InvalidAmount(msg.value, ev.ticketPrice);
-        
+        if (msg.value != ev.ticketPrice) revert InvalidAmount(msg.value, ev.ticketPrice);
 
         uint256 tokenId = nextTokenId;
         nextTokenId += 1;
@@ -227,21 +227,21 @@ contract EventraContract is ERC721, Ownable {
         ticketsSold[_eventId] += 1;
 
         // Si se han vendido todos los tickets => el evento pasa a sold out
-        if(ticketsSold[_eventId] == ev.totalTicketNumber) ev.eventState = EventState.SoldOut;
-
+        if (ticketsSold[_eventId] == ev.totalTicketNumber) ev.eventState = EventState.SoldOut;
 
         ev.eventFunds += msg.value;
 
         _safeMint(msg.sender, tokenId);
 
-        
         emit TicketSold(_eventId, tokenId, msg.sender, ev.ticketPrice);
     } //IMPLEMENTAR UN eventFunds++ el msg.value
-    
+
     function viewOurTickets() external { }
     function resendTicket() external { }
     function transferTicket() external { }
 
+    //DEBERIAMOS BORRAR ESTO
+    /*
     function registerCompany(string memory _companyName, address _addr) external {
         if (bytes(_companyName).length == 0) revert InvalidArgument("Invalid Company Name");
         if (_addr == address(0)) revert InvalidArgument("Invalid Company Address");
@@ -250,6 +250,7 @@ contract EventraContract is ERC721, Ownable {
 
         emit EventCompanyRegistered(_companyName, _addr);
     }
+    */
 
     //las fechas se pasarian en formato UNIX: 1234567890 10 digits
     function createEvent(
@@ -263,7 +264,7 @@ contract EventraContract is ERC721, Ownable {
         uint32 _totalTicketNumber
     ) external payable {
         if (msg.value != EVENT_DEPOSIT) revert InvalidAmount(msg.value, EVENT_DEPOSIT);
-        if (msg.sender != companies[msg.sender].addr) revert Unauthorized("Not Company");
+      // if (msg.sender != companies[msg.sender].addr) revert Unauthorized("Not Company");
         if (bytes(_eventName).length == 0) revert InvalidArgument("Invalid Event Name");
         if (_ticketPrice == 0) revert InvalidArgument("Invalid Ticket Price");
         if (_startSellDate <= block.timestamp) revert InvalidArgument("Invalid Start Time");
@@ -297,7 +298,7 @@ contract EventraContract is ERC721, Ownable {
         emit EventCreated(eventId, _eventName, _ticketPrice, _eventDate);
     }
 
-    function viewStatistics(uint256 eventId) 
+    function viewStatistics(uint256 eventId)
         external
         view
         eventExists(eventId)
@@ -313,7 +314,7 @@ contract EventraContract is ERC721, Ownable {
             uint32 _totalTicketNumber
         )
     {
-        Event storage eventra = events[eventId];  
+        Event storage eventra = events[eventId];
 
         return (
             eventra.eventName,
@@ -328,16 +329,16 @@ contract EventraContract is ERC721, Ownable {
     }
 
     function cancelEvent(uint256 eventId) external eventExists(eventId) onlyEventOrganizer(eventId) {
-        if (eventId >= nextEventId) revert EventNotFound(eventId);  //TIENE SENTIDO?? SE PUEDE TENER UN ID MAYOR???
+        if (eventId >= nextEventId) revert EventNotFound(eventId); //TIENE SENTIDO?? SE PUEDE TENER UN ID MAYOR???
 
         Event storage eventra = events[eventId];                                    // SOLO FINALIZAMOS EVENTO AL RETIRAR FONDOS, PERO Y SI EL EVENTO HA TERMINADO Y SE
         if (eventra.eventState != EventState.Active) revert InvalidEventState();    // LE DA CANCELAR??
-        if (block.timestamp > eventra.eventDate) revert InvalidEventState(); 
-        eventra.eventState = EventState.Canceled;                                 
+        if (block.timestamp > eventra.eventDate) revert InvalidEventState();
+        eventra.eventState = EventState.Canceled;
 
         // if (block.timestamp <= events[eventId].startSellDate - 1 days) SE DEVUELVE LA PASTA
         bool isSellPeriod = eventra.startSellDate <= block.timestamp && eventra.endSellDate >= block.timestamp;  //SE PUEDE AÑADIR UNA POLITICA DE QUE PARA RECUPERAR LA PASTA
-        if (!isSellPeriod) {                                                                                     // HAYA QUE CANCELAR 1 DIA (O LO QUE SEA) ANTES DEL SELL PERIOD   
+        if (!isSellPeriod) {                                                                                     // HAYA QUE CANCELAR 1 DIA (O LO QUE SEA) ANTES DEL SELL PERIOD
             (bool ok,) = msg.sender.call{ value: EVENT_DEPOSIT }("");
             if (!ok) revert TransferFailed(msg.sender, EVENT_DEPOSIT);
         }
