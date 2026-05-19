@@ -25,6 +25,13 @@ contract EventraContract is Ownable {
     ///     States      //
     //////////////////////
 
+    /*
+    Possible states an event can have:
+        - Active: Tickets can still be bought, sold, and used.
+        - Expired: ? -- There is nothing in the blueprint about "Expired"
+        - Canceled: The company canceled the event. Tickets can only be reimbursed.
+        - Finished: The event is finished. Tickets cannot be used in any way
+    */
     enum EventState {
         Active,
         Expired,
