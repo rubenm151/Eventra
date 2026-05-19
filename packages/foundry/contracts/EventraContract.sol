@@ -63,7 +63,7 @@ contract EventraContract is Ownable {
 
     struct Company {
         string companyName;
-        string phoneNumber;
+        bytes16 phoneNumber; //REVISAR POR SEGURIDAD GUARDAR INFORMACION COMO EL TELF EN LA BLOCKCHAIN
         address addr;
     }
 
@@ -88,8 +88,6 @@ contract EventraContract is Ownable {
     //////////////////////
     /// State Variables //
     //////////////////////
-    // struct User {}
-    
 
     uint256 public nextEventId;
 
@@ -108,12 +106,8 @@ contract EventraContract is Ownable {
     /// Events /////
     ////////////////
 
-    event EventCreated(
-        uint256 eventId,
-        bytes32 eventName,
-        uint96 ticketPrice,
-        uint48 eventDate
-    );
+    event EventCreated(uint256 eventId, string eventName, uint96 ticketPrice, uint48 eventDate);
+    event EventCanceled(uint256 eventId, string eventName, uint96 ticketPrice, uint48 eventDate);
 
     ///////////////////
     /// Constructor ///
@@ -126,33 +120,23 @@ contract EventraContract is Ownable {
     /// Functions /////
     ///////////////////
 
-    function registerUser() external {}
-    function loggingUser() external {}
-    function searchEvent() external {}
-    function buyTicket() external {}
-    function viewOurTickets() external {}
-    function resendTicket() external {}
-    function transferTicket() external {}
+    function registerUser() external { }
+    function loggingUser() external { }
+    function searchEvent() external { }
+    function buyTicket() external { }
+    function viewOurTickets() external { }
+    function resendTicket() external { }
+    function transferTicket() external { }
 
-    function registerCompany(
-        string memory _companyName,
-        string memory _phoneNumber,
-        address _addr
-    ) external {
+    function registerCompany(string memory _companyName, bytes16 _phoneNumber, address _addr) external {
+        if (bytes(_companyName).length == 0) revert InvalidArgument("Invalid Company Name");
+        if (_phoneNumber == bytes16(0)) revert InvalidArgument("Invalid Phone Number");
+        if (_addr == address(0)) revert InvalidArgument("Invalid Company Address");
 
-        if(bytes(_companyName).length == 0)           revert InvalidArgument("Invalid Company Name");
-        if(_phoneNumber == 0)                         revert InvalidArgument("Invalid Phone Number");
-        if(_addr == address(0))                       revert InvalidArgument("Invalid Company Address");
-
-        companies[_addr] = Company({
-            companyName: _companyName,
-            phoneNumber: _phoneNumber,
-            addr: _addr
-        });
+        companies[_addr] = Company({ companyName: _companyName, phoneNumber: _phoneNumber, addr: _addr });
     }
 
-
-    //las fechas se pasarian en formato UNIX: 1778966678 10 digits
+    //las fechas se pasarian en formato UNIX: 1234567890 10 digits
     function createEvent(
         string memory _eventName,
         string memory _eventDescription,
@@ -162,18 +146,20 @@ contract EventraContract is Ownable {
         uint48 _eventDate,
         uint16 _ticketRoyalty,
         uint32 _totalTicketNumber
-    ) external payable {
 
-        if(msg.sender != companies[msg.sender].addr)    revert Unauthorized("Not Company");
-        if(bytes(_eventName).length == 0)               revert InvalidArgument("Invalid Event Name");
-        if(_ticketPrice == 0)                           revert InvalidArgument("Invalid Ticket Price");
-        if(_startSellDate <= block.timestamp)           revert InvalidArgument("Invalid Start Time");
-        if(_endSellDate <= block.timestamp)             revert InvalidArgument("Invalid End Time");
-        if(_eventDate <= block.timestamp)               revert InvalidArgument("Invalid Date Event");
-        if(_startSellDate >= _endSellDate)              revert InvalidArgument("Invalid Sell Time");
-        if(_ticketRoyalty < MINIMUM_ROYALTY ||  
-           _ticketRoyalty > MAXIMUM_ROYALTY)            revert InvalidArgument("Invalid Ticket Royalty");
-        if(_totalTicketNumber == 0)                     revert InvalidArgument("Invalid Total Ticket Number");
+    ) external payable {
+        
+        if (msg.sender != companies[msg.sender].addr) revert Unauthorized("Not Company");
+        if (bytes(_eventName).length == 0) revert InvalidArgument("Invalid Event Name");
+        if (_ticketPrice == 0) revert InvalidArgument("Invalid Ticket Price");
+        if (_startSellDate <= block.timestamp) revert InvalidArgument("Invalid Start Time");
+        if (_endSellDate <= block.timestamp) revert InvalidArgument("Invalid End Time");
+        if (_eventDate <= block.timestamp) revert InvalidArgument("Invalid Date Event");
+        if (_startSellDate >= _endSellDate) revert InvalidArgument("Invalid Sell Time");
+        if (_ticketRoyalty < MINIMUM_ROYALTY || _ticketRoyalty > MAXIMUM_ROYALTY) {
+            revert InvalidArgument("Invalid Ticket Royalty");
+        }
+        if (_totalTicketNumber == 0) revert InvalidArgument("Invalid Total Ticket Number");
 
         uint256 eventId = nextEventId;
 
@@ -188,18 +174,64 @@ contract EventraContract is Ownable {
             totalTicketNumber: _totalTicketNumber,
             eventId: eventId,
             organizer: msg.sender,
-            eventState: Active
+            eventState: EventState.Active
         });
 
         nextEventId++;
 
         emit EventCreated(eventId, _eventName, _ticketPrice, _eventDate);
     }
-    function viewStatistics() external {}
-    function cancelEvent() external {}
-    function withdrawFunds() external {}
 
-    function suspendAccount() external onlyOwner {}
+    function viewStatistics(uint256 eventId) //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
+        external
+        view
+        returns (
+            string memory _eventName,
+            string memory _eventDescription,
+            uint96 _ticketPrice,
+            uint48 _startSellDate,
+            uint48 _endSellDate,
+            uint48 _eventDate,
+            uint16 _ticketRoyalty,
+            uint32 _totalTicketNumber
+        )
+    {
+        if (eventId == 0) revert EventNotFound();
 
-    receive() external payable {}
+        Event storage eventra = events[eventId];
+
+        return (
+            eventra.eventName,
+            eventra.eventDescription,
+            eventra.ticketPrice,
+            eventra.startSellDate,
+            eventra.endSellDate,
+            eventra.eventDate,
+            eventra.ticketRoyalty,
+            eventra.totalTicketNumber
+        );
+    }
+
+    function cancelEvent(uint256 eventId) external {
+        //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
+        //REVISAR SI QUEREMOS APLICAR DELETE O MANTENER EL EVENTO CANCELADO EN EL MAPPING
+
+        if (eventId == 0) revert EventNotFound();
+
+        Event storage eventra = events[eventId];
+
+        if (eventra.eventState != EventState.Active ) revert InvalidEventState();
+
+        eventra.eventState =  EventState.Canceled;
+
+        emit EventCanceled(eventId, eventra.eventName, eventra.ticketPrice, eventra.eventDate);
+
+        
+    }
+
+    function withdrawFunds(uint256 eventId) external { } //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
+
+    function suspendAccount() external onlyOwner { }
+
+    receive() external payable { }
 }
