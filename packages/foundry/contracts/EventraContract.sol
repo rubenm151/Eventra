@@ -66,10 +66,10 @@ contract EventraContract is Ownable {
         uint48 startSellDate;
         uint48 endSellDate;
         uint48 eventDate;
-        uint16 ticketRoyalty;
-        uint32 totalTicketNumber;
+        uint16 ticketRoyalty; // Percentage of the resell a company gets when a ticket is resold.
+        uint32 totalTicketNumber; // Number of ticket NFTs to be minted.
         uint256 eventId;
-        address organizer;
+        address organizer; // EventCompany address
         uint256 eventFunds;
         EventState eventState;
     }
