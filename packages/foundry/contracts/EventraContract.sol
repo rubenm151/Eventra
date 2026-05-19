@@ -164,8 +164,7 @@ contract EventraContract is ERC721, Ownable {
     /// Constructor ///
     ///////////////////
 
-    constructor(address _owner) payable Ownable(_owner) {
-        ERC721("Eventra Tickets", "EVTR");
+    constructor(address _owner) payable ERC721("Eventra Tickets", "EVTR") Ownable(_owner) {
         nextEventId = 1;
         nextTokenId = 1;
     }
