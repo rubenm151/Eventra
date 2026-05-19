@@ -172,7 +172,9 @@ contract EventraContract is ERC721, Ownable {
     function registerUser() external { }
     function loggingUser() external { }
     function searchEvent(uint256 eventId) external { }
+
     function buyTicket() external { } //IMPLEMENTAR UN eventFunds++ el msg.value
+    
     function viewOurTickets() external { }
     function resendTicket() external { }
     function transferTicket() external { }
