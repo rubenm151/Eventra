@@ -11,10 +11,8 @@ import "@openzeppelin/contracts/access/Ownable.sol"; /*TODO: Ya existe la librer
 */
 
 contract EventraContract is Ownable {
-    //////////////////////
-    ///     States      //
-    //////////////////////
-    /* Currently this is not available, might be implemented later if given enough time
+    /* Actualmente no está implementado, si hay tiempo se puede considerar
+
     enum CompanyVerificationState {
         PendingVerification,
         Verified,
@@ -22,6 +20,10 @@ contract EventraContract is Ownable {
         Banned
     }
     */
+
+    //////////////////////
+    ///     States      //
+    //////////////////////
 
     enum EventState {
         Active,
@@ -50,6 +52,7 @@ contract EventraContract is Ownable {
         uint32 totalTicketNumber;
         uint256 eventId;
         address organizer;
+        uint256 eventFunds;
         EventState eventState;
     }
 
@@ -108,6 +111,7 @@ contract EventraContract is Ownable {
 
     event EventCreated(uint256 eventId, string eventName, uint96 ticketPrice, uint48 eventDate);
     event EventCanceled(uint256 eventId, string eventName, uint96 ticketPrice, uint48 eventDate);
+    event EventFundsWithdrawn(uint256 eventId, string eventName); //HABRIA QUE VER COMO SE LE PASA EL DINERO OBTENIDO
 
     ///////////////////
     /// Constructor ///
@@ -116,14 +120,16 @@ contract EventraContract is Ownable {
     constructor(address _owner) payable Ownable(_owner) {
         nextEventId = 1;
     }
+
     ///////////////////
     /// Functions /////
     ///////////////////
 
+    receive() external payable { }
     function registerUser() external { }
     function loggingUser() external { }
-    function searchEvent() external { }
-    function buyTicket() external { }
+    function searchEvent(uint256 eventId) external { }
+    function buyTicket() external { } //IMPLEMENTAR UN eventFunds++ el msg.value
     function viewOurTickets() external { }
     function resendTicket() external { }
     function transferTicket() external { }
@@ -146,9 +152,8 @@ contract EventraContract is Ownable {
         uint48 _eventDate,
         uint16 _ticketRoyalty,
         uint32 _totalTicketNumber
-
     ) external payable {
-        
+        if (msg.value != EVENT_DEPOSIT) revert InvalidAmount();
         if (msg.sender != companies[msg.sender].addr) revert Unauthorized("Not Company");
         if (bytes(_eventName).length == 0) revert InvalidArgument("Invalid Event Name");
         if (_ticketPrice == 0) revert InvalidArgument("Invalid Ticket Price");
@@ -174,7 +179,8 @@ contract EventraContract is Ownable {
             totalTicketNumber: _totalTicketNumber,
             eventId: eventId,
             organizer: msg.sender,
-            eventState: EventState.Active
+            eventState: EventState.Active,
+            eventFunds: 0
         });
 
         nextEventId++;
@@ -182,7 +188,7 @@ contract EventraContract is Ownable {
         emit EventCreated(eventId, _eventName, _ticketPrice, _eventDate);
     }
 
-    function viewStatistics(uint256 eventId) //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
+    function viewStatistics(uint256 eventId) //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY O SI CON EL IF ACTUAL SIRVE
         external
         view
         returns (
@@ -199,6 +205,7 @@ contract EventraContract is Ownable {
         if (eventId == 0) revert EventNotFound();
 
         Event storage eventra = events[eventId];
+        if (msg.sender != eventra.organizer) revert Unauthorized("Invalid user");
 
         return (
             eventra.eventName,
@@ -216,22 +223,36 @@ contract EventraContract is Ownable {
         //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
         //REVISAR SI QUEREMOS APLICAR DELETE O MANTENER EL EVENTO CANCELADO EN EL MAPPING
 
+        if (eventId == 0 || eventId >= nextEventId) revert EventNotFound();
+
+        Event storage eventra = events[eventId];
+
+        if (msg.sender != eventra.organizer) revert Unauthorized("Invalid user");
+
+        if (eventra.eventState != EventState.Active) revert InvalidEventState();
+
+        eventra.eventState = EventState.Canceled;
+
+        emit EventCanceled(eventId, eventra.eventName, eventra.ticketPrice, eventra.eventDate);
+    }
+
+    function withdrawFunds(uint256 eventId) external {
+        //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
+
         if (eventId == 0) revert EventNotFound();
 
         Event storage eventra = events[eventId];
 
-        if (eventra.eventState != EventState.Active ) revert InvalidEventState();
+        if (msg.sender != eventra.organizer) revert Unauthorized("Invalid user");
+        if (eventra.eventState != EventState.Finished) revert InvalidEventState();
 
-        eventra.eventState =  EventState.Canceled;
+        eventra.eventState = EventState.Finished;
 
-        emit EventCanceled(eventId, eventra.eventName, eventra.ticketPrice, eventra.eventDate);
+        (bool ok,) = msg.sender.call{ value: 0 }(""); //DEFINIR QUE SE PAGA
+        if (!ok) revert TransferFailed();
 
-        
+        emit EventFundsWithdrawn(eventId, eventra.eventName);
     }
 
-    function withdrawFunds(uint256 eventId) external { } //VIABLE APLICAR UN PERMISO DE SOLO EVENTCOMPANY
-
     function suspendAccount() external onlyOwner { }
-
-    receive() external payable { }
 }
