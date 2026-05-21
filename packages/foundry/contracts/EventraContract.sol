@@ -254,6 +254,18 @@ contract EventraContract is ERC721, Ownable {
         );
     }
 
+    function checkNumberOfTicketsOfUserForOneEvent(uint256 _eventId, address _user) private view returns (uint8 _numberOfTickets) {
+        uint256[] memory temp = userTickets[_user];
+        uint8 ticketsOfUserForEvent = 0;
+        for (uint256 i = 0; i < temp.length; i++) {
+            uint256 ticket = temp[i];
+            if (tickets[ticket].eventId == _eventId) {
+                ticketsOfUserForEvent += 1;
+            }
+        }
+        return ticketsOfUserForEvent;
+    }
+
     function buyTicket(uint256 _eventId) external payable eventExists(_eventId) onlyActivedEvent(_eventId) {
         Event storage eventra = events[_eventId];
         if (eventra.eventState == EventState.SoldOut) revert EventIsSoldOut(_eventId);
