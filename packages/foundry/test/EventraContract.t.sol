@@ -9,6 +9,7 @@ contract EventraTests is Test {
     address internal owner = makeAddr("owner");
     address internal buyer = makeAddr("buyer");
     address internal buyer2 = makeAddr("buyer2");
+    address internal buyer3 = makeAddr("buyer3");
 
     address internal eventCompany = makeAddr("eventCompany");
     address internal eventCompany2 = makeAddr("eventCompany2");
@@ -22,13 +23,19 @@ contract EventraTests is Test {
     error EventNotFound(uint256 eventId);
     error InvalidEventState();
     error InvalidTicketState();
-    error SalesClosed();
+    error SalesClosed(uint256 eventId);
     error Unauthorized(string argument);
     error PayoutNotActiveYet();
     error PayoutAlreadyPaid();
     error InvalidAddress();
     error NotValidPayout();
     error TransferFailed(address to, uint256 amount);
+    error NotFundsToWithdraw(address organizer, uint256 eventId);
+    error EventNotFinished(uint256 eventId);
+    error EventFinished(uint256 eventId);
+    error EventNotActive(uint256 eventId);
+    error EventIsSoldOut(uint256 eventId);
+    error EventCancelled(uint256 eventId);
 
     string internal testCompanyName = "TEST COMPANY NAME";
     string internal testEventName = "TEST";
@@ -44,13 +51,14 @@ contract EventraTests is Test {
         eventra = new EventraContract(owner);
 
         vm.deal(buyer, 10 ether);
+        vm.deal(buyer2, 10 ether);
+        vm.deal(buyer3, 10 ether);
+
         vm.deal(eventCompany, 10 ether);
         vm.deal(address(eventra), 100 ether);
     }
 
-    ///////////////////
     /// Helpers ///
-    ///////////////////
 
     function _registerAndCreateDefaultEvent() internal {
         eventra.registerCompany(testCompanyName, eventCompany);
@@ -68,9 +76,7 @@ contract EventraTests is Test {
         );
     }
 
-    ///////////////////
     /// Tests Create Event ///
-    ///////////////////
 
     function test_createEventHappyPath() public {
         //IMPORTANTE SE HA MODIFICADO EL FOUNDRY.TOML CON via_ir = true PARA DESHABILITAR EL FALLO DE "STACK TOO DEEP"
@@ -302,9 +308,7 @@ contract EventraTests is Test {
         );
     }
 
-    ///////////////////
     /// Tests View Statistics ///
-    ///////////////////
 
     function test_viewStatisticsWrongOrganizer() public {
         _registerAndCreateDefaultEvent();
@@ -323,9 +327,7 @@ contract EventraTests is Test {
         eventra.viewStatistics(100);
     }
 
-    ///////////////////
     /// Tests Buy Tickets ///
-    ///////////////////
 
     function test_buyTicketHappyPath() public {
         _registerAndCreateDefaultEvent();
@@ -346,15 +348,31 @@ contract EventraTests is Test {
         (,,,,,,,,,, uint256 eventFunds,,) = eventra.events(1);
 
         assertEq(eventFunds, 0.1 ether);
+
+        (uint256 ticketEventId, address ticketUser, EventraContract.TicketState ticketState) = eventra.tickets(1);
+        assertEq(ticketEventId, 1);
+        assertEq(ticketUser, buyer);
+        assertEq(uint256(ticketState), uint256(EventraContract.TicketState.Active));
+
+        assertEq(eventra.nextTokenId(), 2);
     }
 
-    function test_buyTicketWrongAmount() public {
+    function test_buyTicketWrongAmountLess() public {
         _registerAndCreateDefaultEvent();
 
         vm.warp(testStartSellDate);
         vm.prank(buyer);
         vm.expectPartialRevert(InvalidAmount.selector);
-        eventra.buyTicket(1);
+        eventra.buyTicket{ value: testTicketPrice - 1 wei }(1);
+    }
+
+    function test_buyTicketWrongAmountMore() public {
+        _registerAndCreateDefaultEvent();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        vm.expectPartialRevert(InvalidAmount.selector);
+        eventra.buyTicket{ value: testTicketPrice + 1 wei }(1);
     }
 
     function test_buyTicketWrongEventId() public {
@@ -367,9 +385,61 @@ contract EventraTests is Test {
     function test_buyTicketSalesClosed() public {
         _registerAndCreateDefaultEvent();
 
-        vm.warp(testEndSellDate);
+        vm.warp(block.timestamp);
         vm.prank(buyer);
         vm.expectPartialRevert(SalesClosed.selector);
         eventra.buyTicket{ value: testTicketPrice }(1);
+    }
+
+    function test_buyTicketSoldOut() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
+        vm.prank(eventCompany);
+        eventra.createEvent{ value: 1 ether }(
+            testEventName,
+            testEventDescription,
+            testTicketPrice,
+            testStartSellDate,
+            testEndSellDate,
+            testEventDate,
+            testTicketRoyalty,
+            2
+        );
+        vm.stopPrank();
+        vm.warp(testEndSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+        vm.stopPrank();
+
+        vm.prank(buyer2);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+        vm.stopPrank();
+
+        vm.prank(buyer3);
+        vm.expectPartialRevert(EventIsSoldOut.selector);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+    }
+
+    function test_buyTicketAfterEndSellDate() public {
+        _registerAndCreateDefaultEvent();
+
+        vm.warp(testEndSellDate + 1);
+        vm.prank(buyer);
+        vm.expectPartialRevert(SalesClosed.selector);
+        eventra.buyTicket(1);
+    }
+
+    function test_buyTicketEventFinished() public {
+        _registerAndCreateDefaultEvent();
+        vm.warp(testEventDate);
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventFinished.selector);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        /// Tests Buy Ticket pendientes de implementar ///
+
+        // - test_buyTicketEventCancelled: el organizador cancela el evento y luego se intenta comprar -> EventCancelled.
+        // - test_buyTicketMintsNFTToBuyer: comprobar eventra.ownerOf(1) == buyer y eventra.balanceOf(buyer) == 1.
+        // - test_buyTicketMultipleBuyersTokenIds: dos compradores -> tokenIds 1 y 2, userTickets y eventTickets correctos para cada uno, ticketsSold == 2, eventFunds == 2 * price.
     }
 }
