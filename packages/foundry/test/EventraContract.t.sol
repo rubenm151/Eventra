@@ -14,6 +14,7 @@ contract EventraTests is Test {
     address internal eventCompany2 = makeAddr("eventCompany2");
 
     event EventCreated(uint256 indexed eventId, string indexed eventName, uint96 ticketPrice, uint48 indexed eventDate);
+    event TicketSold(uint256 indexed eventId, uint256 indexed tokenId, address indexed buyer, uint96 price);
 
     error InvalidArgument(string argument);
     error InvalidAmount(uint256 sent, uint256 required);
@@ -29,6 +30,7 @@ contract EventraTests is Test {
     error NotValidPayout();
     error TransferFailed(address to, uint256 amount);
 
+    string internal testCompanyName = "TEST COMPANY NAME";
     string internal testEventName = "TEST";
     string internal testEventDescription = "TEST DESCRIPTION";
     uint96 internal testTicketPrice = 0.1 ether;
@@ -46,9 +48,34 @@ contract EventraTests is Test {
         vm.deal(address(eventra), 100 ether);
     }
 
+    ///////////////////
+    /// Helpers ///
+    ///////////////////
+
+    function _registerAndCreateDefaultEvent() internal {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
+        vm.prank(eventCompany);
+        eventra.createEvent{ value: 1 ether }(
+            testEventName,
+            testEventDescription,
+            testTicketPrice,
+            testStartSellDate,
+            testEndSellDate,
+            testEventDate,
+            testTicketRoyalty,
+            testTotalTicketNumber
+        );
+    }
+
+    ///////////////////
+    /// Tests Create Event ///
+    ///////////////////
+
     function test_createEventHappyPath() public {
         //IMPORTANTE SE HA MODIFICADO EL FOUNDRY.TOML CON via_ir = true PARA DESHABILITAR EL FALLO DE "STACK TOO DEEP"
 
+        eventra.registerCompany(testCompanyName, eventCompany);
         vm.expectEmit(true, true, false, true);
         emit EventCreated(1, testEventName, testTicketPrice, testEventDate);
 
@@ -76,6 +103,7 @@ contract EventraTests is Test {
             uint256 eventId,
             address organizer,
             uint256 eventFunds,
+            uint32 ticketsSold,
             EventraContract.EventState eventState
         ) = eventra.events(1);
 
@@ -89,11 +117,14 @@ contract EventraTests is Test {
         assertEq(testTotalTicketNumber, totalTicketNumber);
         assertGt(eventId, 0);
         assertEq(eventCompany, organizer);
-        assertEq(eventFunds, 0); //SERA CAMBIADO
+        assertEq(eventFunds, 0);
+        assertEq(ticketsSold, 0);
         assertEq(uint256(eventState), uint256(EventraContract.EventState.Active));
     }
 
     function test_createEventWrongDeposit() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidAmount.selector);
 
@@ -110,6 +141,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongName() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -126,6 +159,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongDescription() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -142,6 +177,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongTicketPrice() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -158,6 +195,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongStartSellDate() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -174,6 +213,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongEndSellDate() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -190,6 +231,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongEventDate() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -206,6 +249,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventRoyaltyBelowMinimum() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -222,6 +267,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventRoyaltyAboveMaximum() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -238,6 +285,8 @@ contract EventraTests is Test {
     }
 
     function test_createEventWrongTotalTicketNumber() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(InvalidArgument.selector);
 
@@ -253,19 +302,12 @@ contract EventraTests is Test {
         );
     }
 
+    ///////////////////
+    /// Tests View Statistics ///
+    ///////////////////
+
     function test_viewStatisticsWrongOrganizer() public {
-        vm.prank(eventCompany);
-        eventra.createEvent{ value: 1 ether }(
-            testEventName,
-            testEventDescription,
-            testTicketPrice,
-            testStartSellDate,
-            testEndSellDate,
-            testEventDate,
-            testTicketRoyalty,
-            testTotalTicketNumber
-        );
-        vm.stopPrank();
+        _registerAndCreateDefaultEvent();
 
         vm.prank(eventCompany2);
 
@@ -274,8 +316,60 @@ contract EventraTests is Test {
     }
 
     function test_viewStatisticsWrongEvent() public {
+        eventra.registerCompany(testCompanyName, eventCompany);
+
         vm.prank(eventCompany);
         vm.expectPartialRevert(EventNotFound.selector);
         eventra.viewStatistics(100);
+    }
+
+    ///////////////////
+    /// Tests Buy Tickets ///
+    ///////////////////
+
+    function test_buyTicketHappyPath() public {
+        _registerAndCreateDefaultEvent();
+
+        vm.expectEmit(true, true, false, true);
+        emit TicketSold(1, 1, buyer, testTicketPrice);
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        assertEq(eventra.eventTickets(1, 0), 1);
+
+        assertEq(eventra.userTickets(buyer, 0), 1);
+
+        (,,,,,,,,,,, uint32 ticketsSold,) = eventra.events(1);
+        assertEq(ticketsSold, 1);
+
+        (,,,,,,,,,, uint256 eventFunds,,) = eventra.events(1);
+
+        assertEq(eventFunds, 0.1 ether);
+    }
+
+    function test_buyTicketWrongAmount() public {
+        _registerAndCreateDefaultEvent();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        vm.expectPartialRevert(InvalidAmount.selector);
+        eventra.buyTicket(1);
+    }
+
+    function test_buyTicketWrongEventId() public {
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventNotFound.selector);
+        eventra.buyTicket{ value: testTicketPrice }(100);
+    }
+
+    function test_buyTicketSalesClosed() public {
+        _registerAndCreateDefaultEvent();
+
+        vm.warp(testEndSellDate);
+        vm.prank(buyer);
+        vm.expectPartialRevert(SalesClosed.selector);
+        eventra.buyTicket{ value: testTicketPrice }(1);
     }
 }
