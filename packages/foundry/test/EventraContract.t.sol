@@ -49,6 +49,7 @@ contract EventraTests is Test {
     function test_createEventHappyPath() public {
         //IMPORTANTE SE HA MODIFICADO EL FOUNDRY.TOML CON via_ir = true PARA DESHABILITAR EL FALLO DE "STACK TOO DEEP"
 
+        eventra.registerCompany(testCompanyName, eventCompany);
         vm.expectEmit(true, true, false, true);
         emit EventCreated(1, testEventName, testTicketPrice, testEventDate);
 
@@ -76,6 +77,7 @@ contract EventraTests is Test {
             uint256 eventId,
             address organizer,
             uint256 eventFunds,
+            uint32 ticketsSold,
             EventraContract.EventState eventState
         ) = eventra.events(1);
 
@@ -89,7 +91,8 @@ contract EventraTests is Test {
         assertEq(testTotalTicketNumber, totalTicketNumber);
         assertGt(eventId, 0);
         assertEq(eventCompany, organizer);
-        assertEq(eventFunds, 0); //SERA CAMBIADO
+        assertEq(eventFunds, 0);
+        assertEq(ticketsSold, 0);
         assertEq(uint256(eventState), uint256(EventraContract.EventState.Active));
     }
 
