@@ -310,7 +310,18 @@ contract EventraContract is ERC721, Ownable {
     function resendTicket() external { }
 
     function deleteTicketFromUser(address _user, uint256 _ticket) private returns (bool _ok) {
-        
+        uint256[] storage userList = userTickets[_user];
+        uint256 len = userList.length;
+
+        for (uint256 i = 0; i < len; i++) {
+            if (userList[i] == _ticket) {
+                userList[i] = userList[len - 1];
+                userList.pop();
+                return true;
+            }
+        }
+
+        return false;
     }
 
     function transferTicket(address _to, uint256 _ticketId) external {
