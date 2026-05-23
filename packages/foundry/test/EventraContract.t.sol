@@ -23,6 +23,8 @@ contract EventraTests is Test {
     event EventFundsWithdrawn(uint256 indexed eventId, string indexed eventName, uint256 amount); //HABRIA QUE VER COMO SE LE PASA EL DINERO OBTENIDO
     event EventSoldOut(uint256 indexed eventId, string indexed eventName);
     event TicketSold(uint256 indexed eventId, uint256 indexed tokenId, address indexed buyer, uint96 price);
+    event AccountSuspended(address indexed userSuspended);
+    error OwnableUnauthorizedAccount(address account);
 
     string internal testCompanyName = "TEST COMPANY NAME";
     string internal testEventName = "TEST";
@@ -382,7 +384,7 @@ contract EventraTests is Test {
         vm.prank(eventCompany2);
 
         vm.expectPartialRevert(EventraContract.Unauthorized.selector);
-        eventra.viewStatistics(1);
+        eventra.getEventStatistics(1);
     }
 
     function test_viewStatisticsWrongEvent() public {
@@ -390,7 +392,7 @@ contract EventraTests is Test {
 
         vm.prank(eventCompany);
         vm.expectPartialRevert(EventraContract.EventNotFound.selector);
-        eventra.viewStatistics(100);
+        eventra.getEventStatistics(100);
     }
 
     /// Tests Buy Tickets ///
@@ -585,7 +587,7 @@ contract EventraTests is Test {
         eventra.buyTicket{ value: testTicketPrice }(1);
 
         vm.prank(buyer2);
-        vm.expectPartialRevert(EventraContract.TicketNotFound.selector);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
         eventra.transferTicket(buyer3, 1);
     }
 
@@ -874,5 +876,170 @@ contract EventraTests is Test {
 
         (,,,,,,,,,,,,,, EventraContract.EventState eventState) = eventra.events(1);
         assertEq(uint8(eventState), uint8(EventraContract.EventState.Finished));
+    }
+
+    /// Tests suspend account ///
+
+    function test_suspendAccountHappyPath() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.prank(owner);
+
+        vm.expectEmit(true, true, false, true);
+        emit AccountSuspended(buyer);
+        eventra.suspendAccount(buyer);
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+
+        eventra.buyTicket{ value: testTicketPrice }(1);
+    }
+
+    /// Tests suspend account ///
+
+    function test_suspendAccountWrongUser() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.prank(buyer);
+
+        vm.expectPartialRevert(OwnableUnauthorizedAccount.selector);
+        eventra.suspendAccount(owner);
+
+    }
+
+    /// Tests _update (suspended users) ///
+
+    function test_UpdateMintToNonSuspendedUserSucceeds() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        assertEq(eventra.ownerOf(1), buyer);
+        assertEq(eventra.balanceOf(buyer), 1);
+    }
+
+    function test_UpdateTransferBetweenNonSuspendedUsersSucceeds() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(buyer);
+        eventra.transferFrom(buyer, buyer2, 1);
+
+        assertEq(eventra.ownerOf(1), buyer2);
+        assertEq(eventra.balanceOf(buyer), 0);
+        assertEq(eventra.balanceOf(buyer2), 1);
+    }
+
+    function test_UpdateSenderSuspendedRevertsOnTransferFrom() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(owner);
+        eventra.suspendAccount(buyer);
+
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+        eventra.transferFrom(buyer, buyer2, 1);
+    }
+
+    function test_UpdateReceiverSuspendedRevertsOnTransferFrom() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(owner);
+        eventra.suspendAccount(buyer2);
+
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+        eventra.transferFrom(buyer, buyer2, 1);
+    }
+
+    function test_UpdateSenderSuspendedRevertsOnSafeTransferFrom() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(owner);
+        eventra.suspendAccount(buyer);
+
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+        eventra.safeTransferFrom(buyer, buyer2, 1);
+    }
+
+    function test_UpdateReceiverSuspendedRevertsOnSafeTransferFrom() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(owner);
+        eventra.suspendAccount(buyer2);
+
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+        eventra.safeTransferFrom(buyer, buyer2, 1);
+    }
+
+    function test_UpdateSuspendedSenderCannotBypassViaApproval() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(buyer);
+        eventra.approve(buyer3, 1);
+
+        vm.prank(owner);
+        eventra.suspendAccount(buyer);
+
+        vm.prank(buyer3);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+        eventra.transferFrom(buyer, buyer2, 1);
+    }
+
+    function test_UpdateRetainsOwnershipAfterRevert() public {
+        _registerAndCreateDefaultEvent();
+        _registerUser();
+
+        vm.warp(testStartSellDate);
+        vm.prank(buyer);
+        eventra.buyTicket{ value: testTicketPrice }(1);
+
+        vm.prank(owner);
+        eventra.suspendAccount(buyer);
+
+        vm.prank(buyer);
+        vm.expectPartialRevert(EventraContract.Unauthorized.selector);
+        eventra.transferFrom(buyer, buyer2, 1);
+
+        assertEq(eventra.ownerOf(1), buyer);
+        assertEq(eventra.balanceOf(buyer), 1);
+        assertEq(eventra.balanceOf(buyer2), 0);
     }
 }
