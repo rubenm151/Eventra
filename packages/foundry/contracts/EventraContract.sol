@@ -120,8 +120,8 @@ contract EventraContract is ERC721, Ownable {
     uint16 public constant MINIMUM_ROYALTY = 10;
     uint16 public constant MAXIMUM_ROYALTY = 25;
     uint256 public constant CANCEL_DEAD_LINE = 1 days;
-    
-    uint256 public immutable TICKET_BUYING_COMISSION;
+
+    uint256 public immutable OWNER_COMMISSION;
 
     uint256 public nextEventId;
     uint256 public nextTokenId; // Variable para controlar el id del NFT. Se usa para crear
@@ -205,7 +205,7 @@ contract EventraContract is ERC721, Ownable {
     constructor(address _owner, uint256 _ticketBuyingComission) payable ERC721("Eventra Tickets", "EVTR") Ownable(_owner) {
         nextEventId = 1;
         nextTokenId = 1;
-        TICKET_BUYING_COMISSION = _ticketBuyingComission;
+        OWNER_COMMISSION = _ticketBuyingComission;
     }
 
     ///////////////////
@@ -247,11 +247,14 @@ contract EventraContract is ERC721, Ownable {
         if (block.timestamp > eventra.endSellDate || block.timestamp < eventra.startSellDate) {
             revert SalesClosed(_eventId);
         }
+        
+        uint256 amountToOwner = (eventra.ticketPrice * OWNER_COMMISSION) / 100;
+
         if (msg.value != eventra.ticketPrice) {
             revert InvalidAmount(msg.value, eventra.ticketPrice);
         }
 
-        uint256 amountToOwner = (eventra.ticketPrice * TICKET_BUYING_COMISSION) / 100;
+        
 
         if (checkNumberOfTicketsOfUserForOneEvent(_eventId, msg.sender) == eventra.maxTicketsPerAddress) {
             revert Unauthorized("You reached the max number of tickets you can buy for this event.");
