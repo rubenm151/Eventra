@@ -112,6 +112,8 @@ contract EventraContract is ERC721, Ownable {
     error InvalidAmountOfTicketOwners();
     error TicketTransferFailed();
 
+    error TicketAlreadyInResell(uint256 ticketId);
+
     //////////////////////
     /// State Variables //
     //////////////////////
