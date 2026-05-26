@@ -254,8 +254,6 @@ contract EventraContract is ERC721, Ownable {
             revert InvalidAmount(msg.value, eventra.ticketPrice + amountToOwner);
         }
 
-        
-
         if (checkNumberOfTicketsOfUserForOneEvent(_eventId, msg.sender) == eventra.maxTicketsPerAddress) {
             revert Unauthorized("You reached the max number of tickets you can buy for this event.");
         }
@@ -276,6 +274,9 @@ contract EventraContract is ERC721, Ownable {
         }
 
         eventCompanyBalance[eventra.organizer] += msg.value - amountToOwner;
+        
+        // We have track of how much of the contract's balance belongs to the owner
+        eventCompanyBalance[owner()] += amountToOwner;
 
         _safeMint(msg.sender, tokenId);
 
