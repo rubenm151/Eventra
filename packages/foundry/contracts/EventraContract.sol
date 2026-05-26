@@ -581,5 +581,9 @@ contract EventraContract is ERC721, Ownable {
         return false;
     }
 
+    function buyTicketFromResell(uint256 tokenId) external onlyUser(msg.sender) {
+        
+    }
+
     receive() external payable { }
 }
