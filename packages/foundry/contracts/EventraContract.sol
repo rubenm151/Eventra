@@ -126,6 +126,7 @@ contract EventraContract is ERC721, Ownable {
     uint256[] public eventsIds;
 
     mapping(address => bool) public users;
+    mapping(address => bool) public suspendedUsers;
     mapping(address => bool) public companies;
 
     mapping(uint256 => Event) public events; // EventId => Event struct
@@ -149,6 +150,7 @@ contract EventraContract is ERC721, Ownable {
     event EventFundsWithdrawn(uint256 indexed eventId, string indexed eventName, uint256 amount);
     event EventSoldOut(uint256 indexed eventId, string indexed eventName);
     event TicketSold(uint256 indexed eventId, uint256 indexed tokenId, address indexed buyer, uint96 price);
+    event AccountSuspended(address indexed userSuspended);
 
     /////////////////
     /// Modifiers ///
@@ -206,14 +208,14 @@ contract EventraContract is ERC721, Ownable {
     /// Functions /////
     ///////////////////
 
-    receive() external payable { }
-
     function registerUser() external {
+        if (suspendedUsers[msg.sender]) revert Unauthorized("Suspended user");
+
         users[msg.sender] = true;
         emit UserRegistered(msg.sender);
     }
 
-    function loggingUser() external { }
+    //  function loggingUser() external { } Esta funcion no tiene sentido en el SC
 
     function searchEvent(uint256 eventId)
         external
@@ -468,5 +470,21 @@ contract EventraContract is ERC721, Ownable {
         emit EventFundsWithdrawn(_eventId, eventra.eventName, amount);
     }
 
-    function suspendAccount() external onlyOwner { }
+    function suspendAccount(address userToSuspend) external onlyOwner {
+        if (userToSuspend == address(0)) revert InvalidArgument("User not found");
+        if (!users[userToSuspend]) revert Unauthorized("User not registered");
+        users[userToSuspend] = false;
+        suspendedUsers[userToSuspend] = true;
+
+        emit AccountSuspended(userToSuspend);
+    }
+
+    function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
+        address from = _ownerOf(tokenId);
+        if (from != address(0) && suspendedUsers[from]) revert Unauthorized("User suspended");
+        if (to != address(0) && suspendedUsers[to]) revert Unauthorized("User suspended");
+        return super._update(to, tokenId, auth);
+    }
+
+    receive() external payable { }
 }
