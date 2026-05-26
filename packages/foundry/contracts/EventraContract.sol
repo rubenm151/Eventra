@@ -568,6 +568,7 @@ contract EventraContract is ERC721, Ownable {
         emit TicketRemovedFromResell(tokenId);
     }
 
+    // Aux function that deletes ticket _ticketId from the array ticketsInResell
     function deleteTicketFromResell(uint256 _ticketId) internal returns (bool) {
         uint256 len = ticketsInResell.length;
         for (uint256 i = 0; i < len; i++) {
