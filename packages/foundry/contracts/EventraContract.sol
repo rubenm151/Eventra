@@ -250,8 +250,8 @@ contract EventraContract is ERC721, Ownable {
         
         uint256 amountToOwner = (eventra.ticketPrice * OWNER_COMMISSION) / 100;
 
-        if (msg.value != eventra.ticketPrice) {
-            revert InvalidAmount(msg.value, eventra.ticketPrice);
+        if (msg.value != eventra.ticketPrice + amountToOwner) {
+            revert InvalidAmount(msg.value, eventra.ticketPrice + amountToOwner);
         }
 
         
