@@ -140,6 +140,12 @@ contract EventraContract is ERC721, Ownable {
     mapping(uint256 => Ticket) public tickets; // TokenId => Ticket struct.
     mapping(address => uint256[]) public userTickets; // User Address => Lista de TokenId vinculados al User Address.
 
+    // Variable for verifying if a ticket is in resell.
+    mapping(uint256 => bool) public ticketInResell;
+
+    // Variable thought for frontend => for showing which tickets are on resell;
+    uint256[] public ticketsInResell;
+    
     ////////////////
     /// Events /////
     ////////////////
