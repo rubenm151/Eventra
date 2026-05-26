@@ -143,7 +143,8 @@ contract EventraContract is ERC721, Ownable {
     mapping(address => uint256[]) public userTickets; // User Address => Lista de TokenId vinculados al User Address.
 
     // Variable for verifying if a ticket is in resell.
-    mapping(uint256 => bool) public ticketInResell;
+    // If value is 0 => ticket is not in resell
+    mapping(uint256 => uint256) public ticketResellPrice;
 
     // Variable thought for frontend => for showing which tickets are on resell;
     uint256[] public ticketsInResell;
@@ -525,7 +526,31 @@ contract EventraContract is ERC721, Ownable {
     { }
 
     //TERMINAR RESELLS
-    function resellTicket (uint256 tokenId, address to) external {}
+    // resell price is the price to pay for the buyer. IT IS NOT THE PRICE THE TICKET OWNER IS GOING TO GET (because of royalties)
+    function putTicketInResell (uint256 tokenId, uint256 resellPrice) external onlyUser(msg.sender){
+        Ticket storage ticket = tickets[tokenId];
+        if (ticket.numberOfOwners == 0) revert TicketNotFound("This ticket does not exist");
+        if (ticket.ticketUser != msg.sender) revert Unauthorized("This ticket does not belong to you");
+
+        if(ticketResellPrice[tokenId] != 0) revert TicketAlreadyInResell(tokenId);
+
+        if(resellPrice == 0) revert InvalidArgument("Resell Price must be > 0");
+
+        if(ticket.ticketState != TicketState.Active) revert Unauthorized("The ticket is not active");
+
+        Event storage ev = events[ticket.eventId];
+        if(ev.eventState == EventState.Canceled || ev.eventState == EventState.Expired || ev.eventState == EventState.Finished) {
+            revert InvalidEventState();
+        }
+
+        if (ticket.numberOfOwners == ev.maxNumberOfOwners) revert Unauthorized("You can't transfer the Ticket more. It reached the maximum number of owners.");
+
+        ticket.ticketState == TicketState.inResell;
+        ticketResellPrice[tokenId] = resellPrice;
+        ticketsInResell.push(tokenId);
+
+        emit TicketInResell(tokenId, resellPrice);
+    }
 
     receive() external payable { }
 }
