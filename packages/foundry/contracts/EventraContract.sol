@@ -554,7 +554,30 @@ contract EventraContract is ERC721, Ownable {
     }
 
     function removeTicketFromResell(uint256 tokenId) external onlyUser(msg.sender) {
+        Ticket storage ticket = tickets[tokenId];
+        if (ticket.numberOfOwners == 0) revert TicketNotFound("This ticket does not exist");
+        if (ticket.ticketUser != msg.sender) revert Unauthorized("This ticket does not belong to you");
+        if (ticket.ticketState != TicketState.inResell) revert InvalidTicketState();
 
+        ticket.ticketState = TicketState.Active;
+        ticketResellPrice[tokenId] = 0;
+
+        bool ok = deleteTicketFromResell(tokenId);
+        if (!ok) revert TicketNotFound("Ticket not found in resell list");
+
+        emit TicketRemovedFromResell(tokenId);
+    }
+
+    function deleteTicketFromResell(uint256 _ticketId) internal returns (bool) {
+        uint256 len = ticketsInResell.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (ticketsInResell[i] == _ticketId) {
+                ticketsInResell[i] = ticketsInResell[len - 1];
+                ticketsInResell.pop();
+                return true;
+            }
+        }
+        return false;
     }
 
     receive() external payable { }
