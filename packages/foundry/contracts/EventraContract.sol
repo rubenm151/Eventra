@@ -165,7 +165,7 @@ contract EventraContract is ERC721, Ownable {
     event AccountSuspended(address indexed userSuspended);
 
     event TicketInResell(uint256 indexed ticketId, uint256 ticketPrice);
-    event TicketRemovedFromResell (uint256 indexed ticketId);
+    event TicketRemovedFromResell(uint256 indexed ticketId);
 
     /////////////////
     /// Modifiers ///
