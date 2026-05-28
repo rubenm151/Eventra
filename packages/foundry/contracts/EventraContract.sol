@@ -510,6 +510,10 @@ contract EventraContract is ERC721, Ownable {
         // actualizamos el indice del nuevo Ticket minteado
         userTicketIndex[_tokenId] = userTickets[msg.sender].length - 1;
 
+        // actualizamos el numero de tickets que tiene cada usuario para ese evento
+        userEventTickets[seller][ticket.eventId] -= 1;
+        userEventTickets[msg.sender][ticket.eventId] += 1;
+
         eventCompanyBalance[ev.organizer] += royalty;
 
         (bool sent,) = seller.call{ value: amountToSeller }("");
