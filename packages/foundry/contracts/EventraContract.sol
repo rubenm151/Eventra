@@ -438,7 +438,7 @@ contract EventraContract is ERC721, Ownable {
             revert InvalidAmount(msg.value, eventra.ticketPrice + amountToOwner);
         }
 
-        if (userEventTickets[msg.sender][_eventId] == eventra.maxTicketsPerAddress) {
+        if (userEventTickets[msg.sender][_eventId] >= eventra.maxTicketsPerAddress) {
             revert InvalidAction("You reached the max number of tickets you can buy for this event.");
         }
 
