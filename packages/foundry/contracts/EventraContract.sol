@@ -48,7 +48,7 @@ contract EventraContract is ERC721, Ownable {
         - Transfered: Ticket is no longer of User's property, so there is nothing you can do with it.
         - inResell: Ticket is in the resell marketplace. It cannot be used or transferred.
         - Used: The Ticket has already been used, so you can't transfer it, use it again, or resell it.
-        - Cancelled: Ticket has been canceled by the Company. You can only reimburse it.
+        - Canceled: Ticket has been canceled by the Company. You can only reimburse it.
         - Reimbursed: It has already been reimbursed, so you cannot do anything with it.
     */
     enum TicketState {
@@ -56,7 +56,7 @@ contract EventraContract is ERC721, Ownable {
         Transfered,
         inResell,
         Used,
-        Cancelled,
+        Canceled,
         Reimbursed
     }
 
@@ -93,7 +93,7 @@ contract EventraContract is ERC721, Ownable {
     error InvalidAction(string argument);
 
     error EventError(uint256 eventId, string argument);
-    error TickectError(uint256 tokenId, string argument);
+    error TicketError(uint256 tokenId, string argument);
 
     error Unauthorized(string argument);
 
@@ -381,12 +381,12 @@ contract EventraContract is ERC721, Ownable {
 
             if (ticket.ticketState == TicketState.Active || ticket.ticketState == TicketState.inResell) {
                 bool wasInResell = ticket.ticketState == TicketState.inResell;
-                ticket.ticketState = TicketState.Cancelled;
+                ticket.ticketState = TicketState.Canceled;
 
                 if (wasInResell) {
                     ticketResellPrice[ticketId] = 0;
                     bool ok = _deleteTicketFromResell(ticketId);
-                    if (!ok) revert TickectError(ticketId, "Ticket not found in resell list");
+                    if (!ok) revert TicketError(ticketId, "Ticket not found in resell list");
                 }
 
                 pendingRefunds[ticket.ticketUser] += eventra.ticketPrice;
@@ -471,14 +471,14 @@ contract EventraContract is ERC721, Ownable {
 
     function buyTicketFromResell(uint256 _tokenId) external payable onlyUser(msg.sender) onlyActivedEvent(tickets[_tokenId].eventId) {
         Ticket storage ticket = tickets[_tokenId];
-        if (ticket.numberOfOwners == 0) revert TickectError(_tokenId, "This ticket does not exist");
-        if (ticket.ticketState != TicketState.inResell) revert TickectError(_tokenId, "Ticket is not in resell");
+        if (ticket.numberOfOwners == 0) revert TicketError(_tokenId, "This ticket does not exist");
+        if (ticket.ticketState != TicketState.inResell) revert TicketError(_tokenId, "Ticket is not in resell");
 
         uint256 resellPrice = ticketResellPrice[_tokenId];
         if (resellPrice == 0) revert InvalidArgument("Invalid ticket price");
 
         address seller = ticket.ticketUser;
-        if (seller == msg.sender) revert TickectError(_tokenId, "You can't buy your own ticket");
+        if (seller == msg.sender) revert TicketError(_tokenId, "You can't buy your own ticket");
 
         if (msg.value != resellPrice) revert InvalidAmount(msg.value, resellPrice);
 
@@ -489,11 +489,11 @@ contract EventraContract is ERC721, Ownable {
         }
 
         if (userEventTickets[msg.sender][ticket.eventId] == ev.maxTicketsPerAddress) {
-            revert TickectError(_tokenId, "You reached the max number of tickets you can buy for this event.");
+            revert TicketError(_tokenId, "You reached the max number of tickets you can buy for this event.");
         }
 
         if (ticket.numberOfOwners >= ev.maxNumberOfOwners) {
-            revert TickectError(_tokenId, "Ticket reached the maximum number of owners.");
+            revert TicketError(_tokenId, "Ticket reached the maximum number of owners.");
         }
 
         uint256 royalty = (resellPrice * ev.ticketRoyalty) / 100;
@@ -505,10 +505,10 @@ contract EventraContract is ERC721, Ownable {
         ticketResellPrice[_tokenId] = 0;
 
         bool ok = _deleteTicketFromResell(_tokenId);
-        if (!ok) revert TickectError(_tokenId, "Ticket not found in resell list");
+        if (!ok) revert TicketError(_tokenId, "Ticket not found in resell list");
 
         bool ok2 = _deleteTicketFromUser(seller, _tokenId);
-        if (!ok2) revert TickectError(_tokenId, "Error deleting ticket from user");
+        if (!ok2) revert TicketError(_tokenId, "Error deleting ticket from user");
         userTickets[msg.sender].push(_tokenId);
 
         // actualizamos el indice del nuevo Ticket minteado
@@ -538,11 +538,11 @@ contract EventraContract is ERC721, Ownable {
             revert TicketTransferFailed(_to, _ticketId, "Destination reached the max number of tickets it can get for this event.");
         }
         if (ticket.ticketState != TicketState.Active) {
-            revert TickectError(_ticketId, "Ticket is not active");
+            revert TicketError(_ticketId, "Ticket is not active");
         }
 
         address seller = ticket.ticketUser;
-        if (seller == msg.sender) revert TickectError(_ticketId, "You can't buy your own ticket");
+        if (seller == msg.sender) revert TicketError(_ticketId, "You can't buy your own ticket");
 
         Event storage ev = events[ticket.eventId];
 
@@ -568,18 +568,18 @@ contract EventraContract is ERC721, Ownable {
 
     function putTicketInResell (uint256 _tokenId, uint256 _resellPrice) external onlyUser(msg.sender) onlyActivedEvent(tickets[_tokenId].eventId) {
         Ticket storage ticket = tickets[_tokenId];
-        if (ticket.numberOfOwners == 0) revert TickectError(_tokenId, "This ticket does not exist");
-        if (ticket.ticketUser != msg.sender) revert TickectError(_tokenId, "This ticket does not belong to you");
+        if (ticket.numberOfOwners == 0) revert TicketError(_tokenId, "This ticket does not exist");
+        if (ticket.ticketUser != msg.sender) revert TicketError(_tokenId, "This ticket does not belong to you");
 
-        if(ticketResellPrice[_tokenId] != 0) revert TickectError(_tokenId, "Ticket already in resell");
+        if(ticketResellPrice[_tokenId] != 0) revert TicketError(_tokenId, "Ticket already in resell");
 
         if(_resellPrice == 0) revert InvalidArgument("Resell Price must be > 0");
 
-        if(ticket.ticketState != TicketState.Active) revert TickectError(_tokenId, "The ticket is not active");
+        if(ticket.ticketState != TicketState.Active) revert TicketError(_tokenId, "The ticket is not active");
 
         Event storage ev = events[ticket.eventId];
 
-        if (ticket.numberOfOwners >= ev.maxNumberOfOwners) revert TickectError(_tokenId, "You can't transfer the Ticket more. It reached the maximum number of owners.");
+        if (ticket.numberOfOwners >= ev.maxNumberOfOwners) revert TicketError(_tokenId, "You can't transfer the Ticket more. It reached the maximum number of owners.");
 
         ticket.ticketState = TicketState.inResell;
         ticketResellPrice[_tokenId] = _resellPrice;
@@ -593,16 +593,16 @@ contract EventraContract is ERC721, Ownable {
 
     function removeTicketFromResell(uint256 _tokenId) external onlyUser(msg.sender) {
         Ticket storage ticket = tickets[_tokenId];
-        if (ticket.numberOfOwners == 0) revert TickectError(_tokenId, "This ticket does not exist");
-        if (ticket.ticketUser != msg.sender) revert TickectError(_tokenId, "This ticket does not belong to you");
-        if (ticket.ticketState != TicketState.inResell) revert TickectError(_tokenId, "Ticket is not in resell");
+        if (ticket.numberOfOwners == 0) revert TicketError(_tokenId, "This ticket does not exist");
+        if (ticket.ticketUser != msg.sender) revert TicketError(_tokenId, "This ticket does not belong to you");
+        if (ticket.ticketState != TicketState.inResell) revert TicketError(_tokenId, "Ticket is not in resell");
 
 
         ticket.ticketState = TicketState.Active;
         ticketResellPrice[_tokenId] = 0;
 
         bool ok = _deleteTicketFromResell(_tokenId);
-        if (!ok) revert TickectError(_tokenId, "Ticket not found in resell list");
+        if (!ok) revert TicketError(_tokenId, "Ticket not found in resell list");
 
         emit TicketRemovedFromResell(_tokenId);
     }
@@ -612,8 +612,8 @@ contract EventraContract is ERC721, Ownable {
     function withdrawUserFunds(uint256 _ticketId) external onlyUser(msg.sender) { 
         Ticket storage ticket = tickets[_ticketId];
 
-        if (ticket.ticketState != TicketState.Cancelled) {
-            revert TickectError(_ticketId, "Ticket not cancelled");
+        if (ticket.ticketState != TicketState.Canceled) {
+            revert TicketError(_ticketId, "Ticket not Canceled");
         }
 
         uint256 amount = events[ticket.eventId].ticketPrice;
