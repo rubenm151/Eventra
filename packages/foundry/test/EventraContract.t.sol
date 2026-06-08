@@ -858,7 +858,7 @@ contract EventraTests is Test {
         eventra.cancelEvent(1);
 
         (,,, EventraContract.TicketState ticketState) = eventra.tickets(1);
-        assertEq(uint256(ticketState), uint256(EventraContract.TicketState.Cancelled));
+        assertEq(uint256(ticketState), uint256(EventraContract.TicketState.Canceled));
     }
 
     /// Tests Withdraw Funds ///
@@ -1292,7 +1292,7 @@ contract EventraTests is Test {
         _buyTicketAs(buyer);
 
         vm.prank(buyer2);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.putTicketInResell(1, 0.2 ether);
     }
 
@@ -1304,7 +1304,7 @@ contract EventraTests is Test {
         eventra.putTicketInResell(1, 0.2 ether);
 
         vm.prank(buyer);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.putTicketInResell(1, 0.3 ether);
     }
 
@@ -1346,7 +1346,7 @@ contract EventraTests is Test {
         eventra.buyTicketFromResell{ value: 0.2 ether }(1);
 
         vm.prank(buyer3);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.putTicketInResell(1, 0.2 ether);
     }
 
@@ -1380,7 +1380,7 @@ contract EventraTests is Test {
         eventra.putTicketInResell(1, 0.2 ether);
 
         vm.prank(buyer2);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.removeTicketFromResell(1);
     }
 
@@ -1389,14 +1389,14 @@ contract EventraTests is Test {
         _buyTicketAs(buyer);
 
         vm.prank(buyer);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.removeTicketFromResell(1);
     }
 
     function test_RemoveTicketFromResellTicketDoesNotExist() public {
         _registerUser();
         vm.prank(buyer);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.removeTicketFromResell(999);
     }
 
@@ -1449,7 +1449,7 @@ contract EventraTests is Test {
         _buyTicketAs(buyer);
 
         vm.prank(buyer2);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.buyTicketFromResell{ value: 0.2 ether }(1);
     }
 
@@ -1461,7 +1461,7 @@ contract EventraTests is Test {
         eventra.putTicketInResell(1, 0.2 ether);
 
         vm.prank(buyer);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.buyTicketFromResell{ value: 0.2 ether }(1);
     }
 
@@ -1518,7 +1518,7 @@ contract EventraTests is Test {
         eventra.putTicketInResell(resellTokenId, 0.2 ether);
 
         vm.prank(buyer2);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.buyTicketFromResell{ value: 0.2 ether }(resellTokenId);
     }
 
@@ -1541,7 +1541,7 @@ contract EventraTests is Test {
         assertEq(numberOfOwners, 3);
 
         vm.prank(buyer3);
-        vm.expectPartialRevert(EventraContract.TickectError.selector);
+        vm.expectPartialRevert(EventraContract.TicketError.selector);
         eventra.putTicketInResell(1, 0.2 ether);
     }
 

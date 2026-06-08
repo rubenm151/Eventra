@@ -218,7 +218,7 @@ contract EventraContract is ERC721, Ownable {
         // Proteccion contra out of bounds
         if (ticketIndex >= len) return false;
 
-        if (userList[ticketIndex] == _ticket) return false;
+        if (userList[ticketIndex] != _ticket) return false;
 
         userList[ticketIndex] = userList[len - 1];
         userTicketIndex[userList[len - 1]] = ticketIndex;
@@ -236,7 +236,7 @@ contract EventraContract is ERC721, Ownable {
 
         if (ticketIndex >= len) return false;
 
-        if (ticketsInResellIds[ticketIndex] == _ticketId) return false;
+        if (ticketsInResellIds[ticketIndex] != _ticketId) return false;
 
         ticketsInResellIds[ticketIndex] = ticketsInResellIds[len - 1];
         resellTicketIndex[ticketsInResellIds[len - 1]] = ticketIndex;
@@ -540,9 +540,6 @@ contract EventraContract is ERC721, Ownable {
         if (ticket.ticketState != TicketState.Active) {
             revert TicketError(_ticketId, "Ticket is not active");
         }
-
-        address seller = ticket.ticketUser;
-        if (seller == msg.sender) revert TicketError(_ticketId, "You can't buy your own ticket");
 
         Event storage ev = events[ticket.eventId];
 
