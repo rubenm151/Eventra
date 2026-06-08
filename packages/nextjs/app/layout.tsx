@@ -1,25 +1,23 @@
-import "@rainbow-me/rainbowkit/styles.css";
-import "@scaffold-ui/components/styles.css";
-import { ScaffoldEthAppWithProviders } from "~~/components/ScaffoldEthAppWithProviders";
-import { ThemeProvider } from "~~/components/ThemeProvider";
+import type { Metadata } from "next";
+import { Header } from "~~/components/Header";
 import "~~/styles/globals.css";
-import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
-export const metadata = getMetadata({
-  title: "Eventra - Event Ticketing DApp",
-  description: "Built with 🏗 Scaffold-ETH 2",
-});
+export const metadata: Metadata = {
+  title: "Eventra - Plataforma de Eventos",
+  description: "Crea eventos, descubre experiencias y compra entradas.",
+};
 
-const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <html suppressHydrationWarning className={``}>
+    <html lang="es" suppressHydrationWarning>
       <body>
-        <ThemeProvider forcedTheme="light">
-          <ScaffoldEthAppWithProviders>{children}</ScaffoldEthAppWithProviders>
-        </ThemeProvider>
+        <div className="flex flex-col min-h-screen">
+          <Header />
+          <main className="relative flex flex-col flex-1">{children}</main>
+        </div>
       </body>
     </html>
   );
 };
 
-export default ScaffoldEthApp;
+export default RootLayout;

@@ -1,16 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TicketIcon } from "@heroicons/react/24/outline";
-import { Bars3Icon } from "@heroicons/react/24/outline";
-import { useOutsideClick } from "~~/hooks/scaffold-eth";
+import { Bars3Icon, TicketIcon } from "@heroicons/react/24/outline";
 
 type HeaderMenuLink = {
   label: string;
   href: string;
-  icon?: React.ReactNode;
 };
 
 export const menuLinks: HeaderMenuLink[] = [
@@ -24,19 +20,17 @@ export const HeaderMenuLinks = () => {
 
   return (
     <>
-      {menuLinks.map(({ label, href, icon }) => {
+      {menuLinks.map(({ label, href }) => {
         const isActive = pathname === href;
         return (
           <li key={href}>
             <Link
               href={href}
-              passHref
               className={`${
                 isActive ? "text-[#2bb3ec]" : "text-[#131a2b]"
-              } hover:text-[#2bb3ec] py-1.5 px-3 text-sm font-medium gap-2 grid grid-flow-col items-center`}
+              } block rounded-lg px-3 py-1.5 text-sm font-medium hover:text-[#2bb3ec]`}
             >
-              {icon}
-              <span>{label}</span>
+              {label}
             </Link>
           </li>
         );
@@ -46,35 +40,26 @@ export const HeaderMenuLinks = () => {
 };
 
 export const Header = () => {
-  const burgerMenuRef = useRef<HTMLDetailsElement>(null);
-  useOutsideClick(burgerMenuRef, () => {
-    burgerMenuRef?.current?.removeAttribute("open");
-  });
-
   return (
-    <div className="sticky lg:static top-0 navbar bg-white min-h-0 shrink-0 justify-between z-20 shadow-sm px-2 sm:px-4 border-b border-[#eef0f3]">
-      <div className="navbar-start w-auto lg:w-1/2">
-        <details className="dropdown" ref={burgerMenuRef}>
-          <summary className="ml-1 btn btn-ghost lg:hidden hover:bg-transparent">
-            <Bars3Icon className="h-1/2" />
-          </summary>
-          <ul
-            className="menu menu-compact dropdown-content mt-3 p-2 shadow-sm bg-white rounded-box w-52"
-            onClick={() => {
-              burgerMenuRef?.current?.removeAttribute("open");
-            }}
-          >
-            <HeaderMenuLinks />
-          </ul>
-        </details>
-        <Link href="/" passHref className="hidden lg:flex items-center gap-2 ml-4 mr-6 shrink-0">
+    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#eef0f3] bg-white px-4 py-2 shadow-sm lg:static">
+      <div className="flex items-center gap-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <TicketIcon className="h-7 w-7 text-[#2bb3ec]" />
-          <span className="font-bold text-[#131a2b] text-lg">Eventra</span>
+          <span className="text-lg font-bold text-[#131a2b]">Eventra</span>
         </Link>
-        <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">
+        <ul className="hidden items-center gap-1 lg:flex">
           <HeaderMenuLinks />
         </ul>
       </div>
-    </div>
+
+      <details className="relative lg:hidden">
+        <summary className="flex cursor-pointer list-none items-center rounded-lg p-2 hover:bg-[#f5f6f8]">
+          <Bars3Icon className="h-5 w-5 text-[#131a2b]" />
+        </summary>
+        <ul className="absolute right-0 mt-2 w-52 rounded-xl border border-[#eef0f3] bg-white p-2 shadow-md">
+          <HeaderMenuLinks />
+        </ul>
+      </details>
+    </header>
   );
 };
