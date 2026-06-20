@@ -24,7 +24,7 @@ const CreateEventPage: NextPage = () => {
   const [totalTickets, setTotalTickets] = useState("");
   const [ticketPrice, setTicketPrice] = useState("");
   const [resaleRoyaltyPercent, setResaleRoyaltyPercent] = useState("");
-
+  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);

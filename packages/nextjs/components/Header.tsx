@@ -11,7 +11,6 @@ type HeaderMenuLink = {
 
 export const menuLinks: HeaderMenuLink[] = [
   { label: "Inicio", href: "/" },
-  { label: "Iniciar sesión", href: "/login" },
   { label: "Crear cuenta", href: "/register" },
 ];
 
