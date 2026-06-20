@@ -1,20 +1,20 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import type { NextPage } from "next";
 import { ArrowLeftIcon, CheckCircleIcon, TicketIcon } from "@heroicons/react/24/outline";
-import { useEventraSession } from "~~/hooks/eventra/useEventraSession";
+import { useWallet } from "~~/hooks/eventra/useWallet";
 import { CreateEventInput, createEvent } from "~~/utils/eventra/events";
 
 const inputClass =
   "w-full rounded-lg bg-[#ebeef3] px-4 py-3 text-[#131a2b] placeholder:text-[#9aa3af] focus:outline-none focus:ring-2 focus:ring-[#2bb3ec]";
 const labelClass = "mb-1 block text-sm font-semibold text-[#131a2b]";
 
+const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+
 const CreateEventPage: NextPage = () => {
-  const router = useRouter();
-  const { session, hydrated } = useEventraSession();
+  const { address, connect } = useWallet();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -29,23 +29,21 @@ const CreateEventPage: NextPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (hydrated && !session) router.push("/login");
-  }, [hydrated, session, router]);
-
-  if (!hydrated) return null;
-
-  if (session && session.role !== "company") {
+  if (!address) {
     return (
       <div className="flex grow items-center justify-center bg-[#f5f6f8] px-4 py-10">
         <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-md">
-          <h1 className="text-xl font-bold text-[#131a2b]">Solo para Event Companies</h1>
-          <p className="mt-2 text-sm text-[#6b7280]">
-            Tu cuenta es de tipo usuario. Solo las cuentas Event Company pueden crear eventos.
-          </p>
+          <h1 className="text-xl font-bold text-[#131a2b]">Conecta tu wallet</h1>
+          <p className="mt-2 text-sm text-[#6b7280]">Necesitas conectar tu wallet para crear un evento.</p>
+          <button
+            onClick={connect}
+            className="mt-5 w-full cursor-pointer rounded-full bg-[#2bb3ec] py-3 font-semibold text-white shadow-md transition hover:bg-[#1ba5dd]"
+          >
+            Conectar wallet
+          </button>
           <Link
             href="/"
-            className="mt-5 inline-block rounded-full bg-[#2bb3ec] px-6 py-2.5 font-semibold text-white shadow-md transition hover:bg-[#1ba5dd]"
+            className="mt-3 inline-block text-sm font-medium text-[#6b7280] hover:text-[#131a2b]"
           >
             Volver al inicio
           </Link>
@@ -53,8 +51,6 @@ const CreateEventPage: NextPage = () => {
       </div>
     );
   }
-
-  if (!session) return null;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -69,8 +65,8 @@ const CreateEventPage: NextPage = () => {
       totalTickets,
       ticketPrice,
       resaleRoyaltyPercent,
-      organizerUsername: session.username,
-      organizerWallet: session.company?.wallet ?? null,
+      organizerUsername: address,
+      organizerWallet: address,
     };
     const result = createEvent(payload);
     setSubmitting(false);
@@ -139,7 +135,7 @@ const CreateEventPage: NextPage = () => {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-[#131a2b]">Crear nuevo evento</h1>
             <p className="mt-1 text-sm text-[#6b7280]">
-              Organizado por <span className="font-semibold">{session.company?.name ?? session.username}</span>
+              Organizado por <span className="font-mono font-semibold">{short(address)}</span>
             </p>
           </div>
 

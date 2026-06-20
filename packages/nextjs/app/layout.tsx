@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Header } from "~~/components/Header";
-import "~~/styles/globals.css";
+// Ignore missing type declarations for CSS modules in this TypeScript file
+// @ts-ignore
+import "../styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Eventra - Plataforma de Eventos",
