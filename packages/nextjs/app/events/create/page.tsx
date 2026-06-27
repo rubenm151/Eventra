@@ -3,9 +3,10 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import type { NextPage } from "next";
+import { parseEther } from "ethers";
 import { ArrowLeftIcon, CheckCircleIcon, TicketIcon } from "@heroicons/react/24/outline";
 import { useWallet } from "~~/hooks/eventra/useWallet";
-import { CreateEventInput, createEvent } from "~~/utils/eventra/events";
+import { getWriteContract, parseContractError } from "~~/utils/eventra/contract";
 
 const inputClass =
   "w-full rounded-lg bg-[#ebeef3] px-4 py-3 text-[#131a2b] placeholder:text-[#9aa3af] focus:outline-none focus:ring-2 focus:ring-[#2bb3ec]";
@@ -23,8 +24,9 @@ const CreateEventPage: NextPage = () => {
   const [eventStartsAt, setEventStartsAt] = useState("");
   const [totalTickets, setTotalTickets] = useState("");
   const [ticketPrice, setTicketPrice] = useState("");
+  const [maxTicketsPerAddress, setMaxTicketsPerAddress] = useState("");
+  const [maxNumberOfOwners, setMaxNumberOfOwners] = useState("");
   const [resaleRoyaltyPercent, setResaleRoyaltyPercent] = useState("");
-  const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
@@ -41,10 +43,7 @@ const CreateEventPage: NextPage = () => {
           >
             Conectar wallet
           </button>
-          <Link
-            href="/"
-            className="mt-3 inline-block text-sm font-medium text-[#6b7280] hover:text-[#131a2b]"
-          >
+          <Link href="/" className="mt-3 inline-block text-sm font-medium text-[#6b7280] hover:text-[#131a2b]">
             Volver al inicio
           </Link>
         </div>
@@ -52,29 +51,43 @@ const CreateEventPage: NextPage = () => {
     );
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSubmitting(true);
-    const payload: CreateEventInput = {
-      name,
-      description,
-      saleStartsAt,
-      saleEndsAt,
-      eventStartsAt,
-      totalTickets,
-      ticketPrice,
-      resaleRoyaltyPercent,
-      organizerUsername: address,
-      organizerWallet: address,
-    };
-    const result = createEvent(payload);
-    setSubmitting(false);
-    if (!result.ok) {
-      setError(result.error);
+
+    const royalty = Number(resaleRoyaltyPercent);
+    if (royalty < 10 || royalty > 25) {
+      setError("El royalty debe estar entre 10 y 25%.");
       return;
     }
-    setCreatedId(result.data.id);
+
+    const toSec = (v: string) => Math.floor(new Date(v).getTime() / 1000);
+
+    setSubmitting(true);
+    try {
+      const signer = await connect();
+      const contract = getWriteContract(signer);
+
+      const tx = await contract.createEvent(
+        name,
+        description,
+        parseEther(ticketPrice),
+        toSec(saleStartsAt),
+        toSec(saleEndsAt),
+        toSec(eventStartsAt),
+        royalty,
+        Number(totalTickets),
+        Number(maxTicketsPerAddress),
+        Number(maxNumberOfOwners),
+        { value: parseEther("1") }, // depósito de 1 ETH que exige el contrato
+      );
+      await tx.wait();
+      setCreatedId(tx.hash);
+    } catch (err: any) {
+      setError(parseContractError(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (createdId) {
@@ -84,7 +97,7 @@ const CreateEventPage: NextPage = () => {
           <CheckCircleIcon className="mx-auto h-12 w-12 text-[#2bb3ec]" strokeWidth={1.5} />
           <h1 className="mt-2 text-2xl font-bold text-[#131a2b]">¡Evento creado!</h1>
           <p className="mt-2 text-sm text-[#6b7280]">
-            Tu evento se ha guardado localmente. ID: <span className="font-mono">{createdId.slice(0, 8)}</span>
+            Evento creado on-chain. Tx: <span className="font-mono">{createdId.slice(0, 10)}…</span>
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <button
@@ -97,6 +110,8 @@ const CreateEventPage: NextPage = () => {
                 setEventStartsAt("");
                 setTotalTickets("");
                 setTicketPrice("");
+                setMaxTicketsPerAddress("");
+                setMaxNumberOfOwners("");
                 setResaleRoyaltyPercent("");
               }}
               className="w-full cursor-pointer rounded-full bg-[#2bb3ec] py-3 font-semibold text-white shadow-md transition hover:bg-[#1ba5dd]"
@@ -224,28 +239,57 @@ const CreateEventPage: NextPage = () => {
               </div>
               <div>
                 <label htmlFor="ticketPrice" className={labelClass}>
-                  Precio
+                  Precio (ETH)
                 </label>
                 <input
                   id="ticketPrice"
                   type="text"
-                  min={0}
                   className={inputClass}
+                  placeholder="0.05"
                   value={ticketPrice}
                   onChange={e => setTicketPrice(e.target.value)}
                 />
               </div>
             </div>
 
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="maxTicketsPerAddress" className={labelClass}>
+                  Máx. entradas por persona
+                </label>
+                <input
+                  id="maxTicketsPerAddress"
+                  type="number"
+                  min={1}
+                  className={inputClass}
+                  value={maxTicketsPerAddress}
+                  onChange={e => setMaxTicketsPerAddress(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="maxNumberOfOwners" className={labelClass}>
+                  Máx. propietarios por entrada
+                </label>
+                <input
+                  id="maxNumberOfOwners"
+                  type="number"
+                  min={1}
+                  className={inputClass}
+                  value={maxNumberOfOwners}
+                  onChange={e => setMaxNumberOfOwners(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="resaleRoyaltyPercent" className={labelClass}>
-                Royalty de reventa (%)
+                Royalty de reventa (%) — entre 10 y 25
               </label>
               <input
                 id="resaleRoyaltyPercent"
-                type="text"
-                min={0}
-                max={100}
+                type="number"
+                min={10}
+                max={25}
                 className={inputClass}
                 value={resaleRoyaltyPercent}
                 onChange={e => setResaleRoyaltyPercent(e.target.value)}

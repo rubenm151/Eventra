@@ -135,7 +135,7 @@ contract EventraTests is Test {
         assertEq(testTotalTicketNumber, totalTicketNumber);
         assertGt(eventId, 0);
         assertEq(eventCompany, organizer);
-        assertEq(eventra.eventCompanyBalance(eventCompany), 0);
+        assertEq(eventra.eventBalance(1), 0);
         assertEq(ticketsSold, 0);
         assertEq(testMaxTicketsPerAddress, maxTicketsPerAddress);
         assertEq(testMaxNumberOfOwners, maxNumberOfOwners);
@@ -421,8 +421,8 @@ contract EventraTests is Test {
         assertEq(ticketsSold, 1);
 
         uint256 commission = (uint256(testTicketPrice) * TEST_COMMISSION) / 100;
-        assertEq(eventra.eventCompanyBalance(eventCompany), uint256(testTicketPrice));
-        assertEq(eventra.eventCompanyBalance(owner), commission);
+        assertEq(eventra.eventBalance(1), uint256(testTicketPrice));
+        assertEq(eventra.ownerBalance(), commission);
 
         (uint256 ticketEventId, address ticketUser,, EventraContract.TicketState ticketState) = eventra.tickets(1);
         assertEq(ticketEventId, 1);
@@ -867,8 +867,7 @@ contract EventraTests is Test {
         _registerAndCreateDefaultEvent();
         _registerUser();
 
-        (string memory eventName,,, uint48 startSellDate,, uint48 eventDate,,, uint256 eventId,,,,,) =
-            eventra.events(1);
+        (string memory eventName,,, uint48 startSellDate,, uint48 eventDate,,, uint256 eventId,,,,,) = eventra.events(1);
 
         vm.warp(startSellDate);
         for (uint256 i; i < 3; i++) {
@@ -876,7 +875,7 @@ contract EventraTests is Test {
             eventra.buyTicket{ value: totalBuyPrice }(1);
         }
 
-        uint256 eventFunds = eventra.eventCompanyBalance(eventCompany);
+        uint256 eventFunds = eventra.eventBalance(1);
 
         vm.warp(eventDate + 1 days);
 
@@ -1097,8 +1096,8 @@ contract EventraTests is Test {
         _buyTicketAs(buyer3);
 
         uint256 commissionPerTicket = (uint256(testTicketPrice) * TEST_COMMISSION) / 100;
-        assertEq(eventra.eventCompanyBalance(owner), commissionPerTicket * 3);
-        assertEq(eventra.eventCompanyBalance(eventCompany), uint256(testTicketPrice) * 3);
+        assertEq(eventra.ownerBalance(), commissionPerTicket * 3);
+        assertEq(eventra.eventBalance(1), uint256(testTicketPrice) * 3);
     }
 
     function test_BuyTicketZeroCommission() public {
@@ -1127,8 +1126,8 @@ contract EventraTests is Test {
         vm.prank(buyer);
         zeroCommission.buyTicket{ value: uint256(testTicketPrice) }(1);
 
-        assertEq(zeroCommission.eventCompanyBalance(owner), 0);
-        assertEq(zeroCommission.eventCompanyBalance(eventCompany), uint256(testTicketPrice));
+        assertEq(zeroCommission.ownerBalance(), 0);
+        assertEq(zeroCommission.eventBalance(1), uint256(testTicketPrice));
     }
 
     /// Tests Register User ///
@@ -1411,7 +1410,7 @@ contract EventraTests is Test {
         eventra.putTicketInResell(1, resellPrice);
 
         uint256 sellerBalanceBefore = buyer.balance;
-        uint256 organizerBalanceBefore = eventra.eventCompanyBalance(eventCompany);
+        uint256 organizerBalanceBefore = eventra.eventBalance(1);
 
         vm.expectEmit(true, true, true, true);
         emit TicketSold(1, 1, buyer2, uint96(resellPrice));
@@ -1422,7 +1421,7 @@ contract EventraTests is Test {
         uint256 amountToSeller = resellPrice - royalty;
 
         assertEq(buyer.balance, sellerBalanceBefore + amountToSeller);
-        assertEq(eventra.eventCompanyBalance(eventCompany), organizerBalanceBefore + royalty);
+        assertEq(eventra.eventBalance(1), organizerBalanceBefore + royalty);
 
         (, address ticketUser, uint8 numberOfOwners, EventraContract.TicketState ticketState) = eventra.tickets(1);
         assertEq(ticketUser, buyer2);
@@ -1553,7 +1552,7 @@ contract EventraTests is Test {
         vm.prank(buyer);
         eventra.putTicketInResell(1, resellPrice);
 
-        uint256 organizerBalanceBefore = eventra.eventCompanyBalance(eventCompany);
+        uint256 organizerBalanceBefore = eventra.eventBalance(1);
         uint256 sellerBalanceBefore = buyer.balance;
 
         vm.deal(buyer2, 2 ether);
@@ -1561,7 +1560,7 @@ contract EventraTests is Test {
         eventra.buyTicketFromResell{ value: resellPrice }(1);
 
         uint256 expectedRoyalty = (resellPrice * testTicketRoyalty) / 100;
-        assertEq(eventra.eventCompanyBalance(eventCompany), organizerBalanceBefore + expectedRoyalty);
+        assertEq(eventra.eventBalance(1), organizerBalanceBefore + expectedRoyalty);
         assertEq(buyer.balance, sellerBalanceBefore + (resellPrice - expectedRoyalty));
     }
 }

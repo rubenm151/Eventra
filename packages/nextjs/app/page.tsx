@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import type { NextPage } from "next";
-import { PlusIcon, TicketIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowRightStartOnRectangleIcon, PlusIcon, TicketIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useWallet } from "~~/hooks/eventra/useWallet";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 const Home: NextPage = () => {
-  const { address, connect } = useWallet();
+  const { address, connect, disconnect } = useWallet();
 
   return (
     <div className="flex grow flex-col items-center justify-center bg-[#f5f6f8] px-4 py-16">
@@ -40,6 +40,19 @@ const Home: NextPage = () => {
               <PlusIcon className="h-5 w-5" />
               Crear evento
             </Link>
+            <Link
+              href="/events/mine"
+              className="mt-3 flex w-full items-center justify-center rounded-full border border-[#e5e7eb] bg-white py-3 font-semibold text-[#131a2b] transition hover:bg-[#f5f6f8]"
+            >
+              Mis eventos
+            </Link>
+            <button
+              onClick={disconnect}
+              className="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-[#e5e7eb] bg-white py-3 font-semibold text-[#b42424] transition hover:bg-[#fdecec]"
+            >
+              <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
+              Desconectar
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">

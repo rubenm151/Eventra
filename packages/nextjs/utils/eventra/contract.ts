@@ -44,3 +44,55 @@ export const connectWallet = async () => {
 
 export const getWriteContract = (signer: ethers.Signer) =>
   new ethers.Contract(EVENTRA_ADDRESS, EVENTRA_ABI, signer);
+
+const ERROR_ES: Record <string, string> = {
+  "Not Company": "Tu wallet no está registrada como empresa.",
+  "Not User": "Tu wallet no está registrada como usuario.",
+  "Company already has an event": "Esta empresa ya tiene un evento activo.",
+  "Invalid Ticket Royalty": "El royalty debe estar entre 10 y 25.",
+  "Invalid Start Time": "El inicio de venta debe ser una fecha futura.",
+  "Invalid End Time": "El fin de venta debe ser una fecha futura.",
+  "Invalid Date Event": "La fecha del evento debe ser futura.",
+  "Invalid Sell Time": "El inicio de venta debe ser anterior al fin.",
+  "Suspended user": "Tu cuenta está suspendida.",
+  "Event not found": "El evento no existe.",
+  "Event finished": "El evento ya ha pasado: no se puede cancelar.",
+  "Event canceled": "El evento ya está cancelado.",
+  "Event not finished yet": "El evento aún no ha terminado (espera 1 día tras la fecha).",
+  "No funds available for withdrawal": "No hay fondos disponibles para retirar.",
+};
+
+const errorInterface = new ethers.Interface(EVENTRA_ABI);
+
+const extractRevertData = (err: any): string | undefined =>
+  err?.data ?? err?.info?.error?.data ?? err?.error?.data ?? err?.revert?.data;
+
+export const parseContractError = (err: any): string => {
+  if (err?.code === "ACTION_REJECTED") return "Has rechazado la transacción en MetaMask.";
+
+  let name: string | undefined = err?.revert?.name;
+  let args: any[] = err?.revert?.args ? Array.from(err.revert.args) : [];
+
+  if (!name) {
+    const data = extractRevertData(err);
+    if (typeof data === "string" && data.length >= 10) {
+      try {
+        const parsed = errorInterface.parseError(data);
+        if (parsed) {
+          name = parsed.name;
+          args = Array.from(parsed.args);
+        }
+      } catch {
+      }
+    }
+  }
+
+  if (name) {
+    const str = args.find(a => typeof a === "string") as string | undefined;
+    if (str) return ERROR_ES[str] ?? str;
+    if (name === "InvalidAmount") return "La cantidad de ETH enviada no es la correcta.";
+    return name;
+  }
+
+  return err?.shortMessage ?? err?.reason ?? err?.message ?? "Error en la transacción.";
+};

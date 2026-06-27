@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { NextPage } from "next";
 import { BuildingOffice2Icon, PlusIcon, TicketIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { useWallet } from "~~/hooks/eventra/useWallet";
-import { getWriteContract } from "~~/utils/eventra/contract";
+import { getWriteContract, parseContractError } from "~~/utils/eventra/contract";
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
@@ -39,7 +39,7 @@ const RegisterPage: NextPage = () => {
       await tx.wait();
       setResult({ address: addr, company: asCompany, name: asCompany ? companyName.trim() : null }); // en vez de ir a home
     } catch (err: any) {
-      setError(err?.shortMessage ?? err?.reason ?? err?.message ?? "Error al registrar.");
+      setError(parseContractError(err));
     } finally {
       setSubmitting(false);
     }
