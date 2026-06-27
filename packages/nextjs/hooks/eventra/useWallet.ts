@@ -9,7 +9,6 @@ const DISCONNECTED_KEY = "eventra:wallet-disconnected";
 export const useWallet = () => {
   const [address, setAddress] = useState<string | null>(null);
 
-  // Restaura la cuenta autorizada (sin popup) salvo que el usuario hiciera logout.
   useEffect(() => {
     const eth = getEth();
     if (!eth) return;

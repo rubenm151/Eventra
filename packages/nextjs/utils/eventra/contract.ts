@@ -34,7 +34,7 @@ export const connectWallet = async () => {
   if (!eth) throw new Error("Need Metamask");
 
   await eth.request({ method: "eth_requestAccounts" });
-  await ensureChain(eth); // <- salta a AnvilTest antes de firmar nada
+  await ensureChain(eth); 
 
   const browser = new ethers.BrowserProvider(eth);
   const signer = await browser.getSigner();

@@ -4,7 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { NextPage } from "next";
 import { formatEther } from "ethers";
-import { ArrowLeftIcon, CalendarDaysIcon, PlusIcon, TicketIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowLeftIcon,
+  CalendarDaysIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  TicketIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { useWallet } from "~~/hooks/eventra/useWallet";
 import { getReadContract, getWriteContract, parseContractError } from "~~/utils/eventra/contract";
 
@@ -14,8 +21,14 @@ type EventView = {
   description: string;
   priceEth: string;
   eventDate: number; // ms
+  startSellDate: number; // ms
+  endSellDate: number; // ms
   ticketsSold: number;
   totalTickets: number;
+  royalty: number; // %
+  maxPerAddress: number;
+  maxOwners: number;
+  organizer: string;
   state: number;
 };
 
@@ -28,6 +41,7 @@ const MyEventsPage: NextPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<number | null>(null);
   const [withdrawing, setWithdrawing] = useState<number | null>(null);
+  const [detail, setDetail] = useState<EventView | null>(null);
 
   const loadEvents = useCallback(async () => {
     if (!address) {
@@ -49,8 +63,14 @@ const MyEventsPage: NextPage = () => {
             description: ev.eventDescription,
             priceEth: formatEther(ev.ticketPrice),
             eventDate: Number(ev.eventDate) * 1000,
+            startSellDate: Number(ev.startSellDate) * 1000,
+            endSellDate: Number(ev.endSellDate) * 1000,
             ticketsSold: Number(ev.ticketsSold),
             totalTickets: Number(ev.totalTicketNumber),
+            royalty: Number(ev.ticketRoyalty),
+            maxPerAddress: Number(ev.maxTicketsPerAddress),
+            maxOwners: Number(ev.maxNumberOfOwners),
+            organizer: ev.organizer,
             state: Number(ev.eventState),
           })),
       );
@@ -169,12 +189,21 @@ const MyEventsPage: NextPage = () => {
                     <h2 className="text-lg font-bold text-[#131a2b]">{ev.name}</h2>
                     <p className="mt-1 text-sm text-[#6b7280]">{ev.description}</p>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${ev.state === 3 ? "bg-[#fdecec] text-[#b42424]" : "bg-[#eaf7fd] text-[#2bb3ec]"
-                      }`}
-                  >
-                    {STATE_LABEL[ev.state] ?? "—"}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${ev.state === 3 ? "bg-[#fdecec] text-[#b42424]" : "bg-[#eaf7fd] text-[#2bb3ec]"
+                        }`}
+                    >
+                      {STATE_LABEL[ev.state] ?? "—"}
+                    </span>
+                    <button
+                      onClick={() => setDetail(ev)}
+                      title="Ver detalles"
+                      className="cursor-pointer rounded-full border border-[#e5e7eb] p-2 text-[#6b7280] transition hover:bg-[#f5f6f8] hover:text-[#131a2b]"
+                    >
+                      <MagnifyingGlassIcon className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-[#131a2b] sm:grid-cols-3">
@@ -221,8 +250,56 @@ const MyEventsPage: NextPage = () => {
           </div>
         )}
       </div>
+
+      {detail && (
+        <div
+          onClick={() => setDetail(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-10"
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="max-h-full w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-lg font-bold text-[#131a2b]">{detail.name}</h2>
+              <button
+                onClick={() => setDetail(null)}
+                title="Cerrar"
+                className="cursor-pointer rounded-full p-1 text-[#6b7280] transition hover:bg-[#f5f6f8] hover:text-[#131a2b]"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="mt-1 text-sm text-[#6b7280]">{detail.description}</p>
+
+            <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <Field label="ID" value={`#${detail.id}`} />
+              <Field label="Estado" value={STATE_LABEL[detail.state] ?? "—"} />
+              <Field label="Precio" value={`${detail.priceEth} ETH`} />
+              <Field label="Royalty reventa" value={`${detail.royalty}%`} />
+              <Field label="Vendidas" value={`${detail.ticketsSold} / ${detail.totalTickets}`} />
+              <Field label="Máx. por wallet" value={String(detail.maxPerAddress)} />
+              <Field label="Máx. dueños/ticket" value={String(detail.maxOwners)} />
+              <Field label="Inicio venta" value={new Date(detail.startSellDate).toLocaleString()} />
+              <Field label="Fin venta" value={new Date(detail.endSellDate).toLocaleString()} />
+              <Field label="Fecha evento" value={new Date(detail.eventDate).toLocaleString()} />
+              <div className="col-span-2">
+                <dt className="text-xs text-[#6b7280]">Organizador</dt>
+                <dd className="font-mono text-xs break-all text-[#131a2b]">{detail.organizer}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const Field = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <dt className="text-xs text-[#6b7280]">{label}</dt>
+    <dd className="font-semibold text-[#131a2b]">{value}</dd>
+  </div>
+);
 
 export default MyEventsPage;
